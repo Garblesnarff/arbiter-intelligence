@@ -1,16 +1,24 @@
 import React from 'react';
+import { Routes, Route, NavLink } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
+import { ChroniclesPage } from './components/ChroniclesPage';
+import { ModelMatrixPage } from './components/ModelMatrixPage';
+import { AlertsPage } from './components/AlertsPage';
+import { SettingsPage } from './components/SettingsPage';
 import { LayoutDashboard, BookOpen, Settings, Sliders, Bell, User } from 'lucide-react';
 
-const SidebarItem = ({ icon: Icon, label, active = false }: { icon: any, label: string, active?: boolean }) => (
-  <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
-    active 
-      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
-      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-  }`}>
+const SidebarItem = ({ icon: Icon, label, to }: { icon: any, label: string, to: string }) => (
+  <NavLink 
+    to={to}
+    className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
+      isActive 
+        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
+        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+    }`}
+  >
     <Icon className="w-5 h-5" />
     <span className="text-sm font-medium">{label}</span>
-  </div>
+  </NavLink>
 );
 
 const App = () => {
@@ -33,13 +41,13 @@ const App = () => {
 
         <nav className="flex-1 p-4 space-y-1">
             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider px-3 mb-2 mt-2">Platform</div>
-            <SidebarItem icon={LayoutDashboard} label="Dashboard" active />
-            <SidebarItem icon={BookOpen} label="Chronicles" />
-            <SidebarItem icon={Sliders} label="Model Matrix" />
+            <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/" />
+            <SidebarItem icon={BookOpen} label="Chronicles" to="/chronicles" />
+            <SidebarItem icon={Sliders} label="Model Matrix" to="/models" />
             
             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider px-3 mb-2 mt-6">Config</div>
-            <SidebarItem icon={Bell} label="Alerts" />
-            <SidebarItem icon={Settings} label="Settings" />
+            <SidebarItem icon={Bell} label="Alerts" to="/alerts" />
+            <SidebarItem icon={Settings} label="Settings" to="/settings" />
         </nav>
 
         <div className="p-4 border-t border-slate-800">
@@ -56,8 +64,8 @@ const App = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0">
-        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
+      <main className="flex-1 min-w-0 flex flex-col">
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
             <div className="md:hidden font-bold text-white">Arbiter</div>
             <div className="ml-auto flex items-center gap-4">
                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -68,7 +76,15 @@ const App = () => {
             </div>
         </header>
 
-        <Dashboard />
+        <div className="flex-1 overflow-y-auto">
+            <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/chronicles" element={<ChroniclesPage />} />
+                <Route path="/models" element={<ModelMatrixPage />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+        </div>
       </main>
 
     </div>
