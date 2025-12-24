@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MOCK_CLAIMS } from '../constants';
 import { fetchClaimsFromRSS } from '../services/rssService';
 import { Claim } from '../types';
+import { Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Activity, Zap, Cpu, Globe, ExternalLink } from 'lucide-react';
 
 const CategoryIcon = ({ category }: { category: string }) => {
@@ -13,6 +14,22 @@ const CategoryIcon = ({ category }: { category: string }) => {
     default: return <Globe className="w-4 h-4 text-slate-400" />;
   }
 };
+
+const SkeletonItem = () => (
+  <div className="p-4 border-b border-slate-800/50 animate-pulse">
+    <div className="flex items-start gap-3">
+       <div className="w-8 h-8 bg-slate-800 rounded-lg shrink-0" />
+       <div className="flex-1 space-y-2">
+         <div className="flex gap-2">
+           <div className="h-3 bg-slate-800 rounded w-16" />
+           <div className="h-3 bg-slate-800 rounded w-12" />
+         </div>
+         <div className="h-4 bg-slate-800 rounded w-3/4" />
+         <div className="h-3 bg-slate-800 rounded w-1/2" />
+       </div>
+    </div>
+  </div>
+);
 
 export const ChronicleFeed = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -50,56 +67,65 @@ export const ChronicleFeed = () => {
         </div>
       </div>
       <div className="divide-y divide-slate-800/50 flex-1 overflow-auto">
-        {claims.map((claim) => (
-          <div key={claim.id} className="p-4 hover:bg-slate-800/30 transition-colors group relative">
-            <div className="flex items-start gap-3">
-              <div className={`mt-1 p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0`}>
-                <CategoryIcon category={claim.category} />
-              </div>
-              <div className="flex-1 pr-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">{claim.category}</span>
-                  <span className="text-[10px] text-slate-600">•</span>
-                  <span className="text-[10px] text-slate-500">{claim.date}</span>
+        {loading ? (
+          <>
+            <SkeletonItem />
+            <SkeletonItem />
+            <SkeletonItem />
+            <SkeletonItem />
+          </>
+        ) : (
+          claims.map((claim) => (
+            <div key={claim.id} className="p-4 hover:bg-slate-800/30 transition-colors group relative">
+              <div className="flex items-start gap-3">
+                <div className={`mt-1 p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0`}>
+                  <CategoryIcon category={claim.category} />
                 </div>
-                <p className="text-sm text-slate-200 leading-snug group-hover:text-white transition-colors">
-                  {claim.claim_text}
-                </p>
-                {claim.entities.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {claim.entities.map((entity) => (
-                      <span key={entity} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                        {entity}
-                      </span>
-                    ))}
+                <div className="flex-1 pr-6">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">{claim.category}</span>
+                    <span className="text-[10px] text-slate-600">•</span>
+                    <span className="text-[10px] text-slate-500">{claim.date}</span>
+                  </div>
+                  <p className="text-sm text-slate-200 leading-snug group-hover:text-white transition-colors">
+                    {claim.claim_text}
+                  </p>
+                  {claim.entities.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {claim.entities.map((entity) => (
+                        <span key={entity} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                          {entity}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {claim.source_url && (
+                  <a 
+                    href={claim.source_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="absolute top-4 right-4 text-slate-600 hover:text-indigo-400 transition-colors"
+                    title="View Source"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {claim.metric_value && (
+                  <div className="flex flex-col items-end">
+                     <span className="text-lg font-bold text-emerald-400">{claim.metric_value}</span>
+                     <span className="text-[10px] text-slate-500">Signal</span>
                   </div>
                 )}
               </div>
-              {claim.source_url && (
-                <a 
-                  href={claim.source_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="absolute top-4 right-4 text-slate-600 hover:text-indigo-400 transition-colors"
-                  title="View Source"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-              {claim.metric_value && (
-                <div className="flex flex-col items-end">
-                   <span className="text-lg font-bold text-emerald-400">{claim.metric_value}</span>
-                   <span className="text-[10px] text-slate-500">Signal</span>
-                </div>
-              )}
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
       <div className="p-3 bg-slate-950/50 border-t border-slate-800 text-center shrink-0">
-        <a href="/#/chronicles" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+        <Link to="/chronicles" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors block w-full h-full">
           View Full Archive →
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Sparkles, ChevronRight, BarChart2, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Sparkles, ChevronRight, BarChart2, CheckCircle2, AlertCircle, Command } from 'lucide-react';
 import { analyzeTask } from '../services/geminiService';
 import { useDynamicModels } from '../hooks/useDynamicModels';
 import { TaskAnalysis, ModelEntry } from '../types';
@@ -9,9 +9,23 @@ export const ModelOptimizer = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<TaskAnalysis | null>(null);
   const [recommendations, setRecommendations] = useState<ModelEntry[]>([]);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   
   // Use the hook for dynamic data
   const { models, loading: modelsLoading } = useDynamicModels();
+
+  // Keyboard shortcut for Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            inputRef.current?.focus();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleAnalyze = async () => {
     if (!prompt.trim()) return;
@@ -51,13 +65,22 @@ export const ModelOptimizer = () => {
             {modelsLoading && <span className="text-xs text-slate-500 font-normal ml-2 animate-pulse">(Syncing intelligence...)</span>}
         </h2>
         
-        <div className="relative">
+        <div className="relative group">
           <textarea
+            ref={inputRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe your task (e.g., 'Review this Python code for bugs' or 'Write a creative story about Mars')..."
-            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[120px] resize-none"
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[120px] resize-none transition-all"
           />
+          {/* Keyboard shortcut hint */}
+          {!prompt && (
+            <div className="absolute top-4 right-4 flex items-center gap-1 text-xs text-slate-600 pointer-events-none border border-slate-700 rounded px-1.5 py-0.5">
+                <Command className="w-3 h-3" />
+                <span>K</span>
+            </div>
+          )}
+          
           <div className="absolute bottom-3 right-3 flex gap-2">
             <button
               onClick={handleAnalyze}

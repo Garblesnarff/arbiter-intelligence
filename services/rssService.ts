@@ -4,6 +4,7 @@ import { extractClaimsFromPost } from './extractionService';
 const RSS_URL = 'https://theinnermostloop.substack.com/feed';
 const PROXY_URL = 'https://corsproxy.io/?';
 const CACHE_KEY_PREFIX = 'arbiter_chronicle_cache_v1_';
+export const LAST_FETCH_KEY = 'arbiter_last_fetch';
 
 export const fetchClaimsFromRSS = async (): Promise<Claim[]> => {
   try {
@@ -16,6 +17,9 @@ export const fetchClaimsFromRSS = async (): Promise<Claim[]> => {
     
     const parserError = xml.querySelector('parsererror');
     if (parserError) throw new Error('Error parsing XML feed');
+
+    // Update last fetch timestamp on success
+    localStorage.setItem(LAST_FETCH_KEY, new Date().toISOString());
 
     const items = Array.from(xml.querySelectorAll('item'));
     
