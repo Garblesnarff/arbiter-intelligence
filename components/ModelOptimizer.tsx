@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Sparkles, ChevronRight, BarChart2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { analyzeTask } from '../services/geminiService';
-import { MODELS } from '../constants';
+import { useDynamicModels } from '../hooks/useDynamicModels';
 import { TaskAnalysis, ModelEntry } from '../types';
 
 export const ModelOptimizer = () => {
@@ -9,6 +9,9 @@ export const ModelOptimizer = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<TaskAnalysis | null>(null);
   const [recommendations, setRecommendations] = useState<ModelEntry[]>([]);
+  
+  // Use the hook for dynamic data
+  const { models, loading: modelsLoading } = useDynamicModels();
 
   const handleAnalyze = async () => {
     if (!prompt.trim()) return;
@@ -20,13 +23,12 @@ export const ModelOptimizer = () => {
     setAnalysis(result);
 
     // 2. Filter and Sort Models based on Intelligence
-    const compatibleModels = MODELS.filter(m => 
+    const compatibleModels = models.filter(m => 
         m.recommended_for.includes(result.category) || 
         m.recommended_for.includes("general" as any)
     );
 
     // Simple scoring: prioritize models with specific chronicle intelligence snippets
-    // In a real app, this would be the complex scoring algorithm from PRD 2.3
     const ranked = compatibleModels.sort((a, b) => {
         // Prioritize models with chronicle data relevant to task
         if (a.chronicle_snippet && !b.chronicle_snippet) return -1;
@@ -46,6 +48,7 @@ export const ModelOptimizer = () => {
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-500" />
             Find Your Optimal Model
+            {modelsLoading && <span className="text-xs text-slate-500 font-normal ml-2 animate-pulse">(Syncing intelligence...)</span>}
         </h2>
         
         <div className="relative">
@@ -58,9 +61,9 @@ export const ModelOptimizer = () => {
           <div className="absolute bottom-3 right-3 flex gap-2">
             <button
               onClick={handleAnalyze}
-              disabled={isAnalyzing || !prompt}
+              disabled={isAnalyzing || !prompt || modelsLoading}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all
-                ${isAnalyzing || !prompt 
+                ${isAnalyzing || !prompt || modelsLoading
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
                     : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-900/20'}`}
             >
@@ -129,9 +132,14 @@ export const ModelOptimizer = () => {
                                     <Sparkles className="w-3 h-3 text-blue-400" />
                                     <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Chronicle Intel</span>
                                 </div>
-                                <p className="text-xs text-blue-200 italic leading-relaxed">
+                                <p className="text-xs text-blue-200 italic leading-relaxed line-clamp-2">
                                     "{model.chronicle_snippet}"
                                 </p>
+                                {model.last_updated && (
+                                    <div className="mt-1 text-[9px] text-blue-500/80 text-right">
+                                        Updated: {model.last_updated}
+                                    </div>
+                                )}
                              </div>
                         )}
 

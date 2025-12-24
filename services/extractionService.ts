@@ -28,7 +28,7 @@ OUTPUT: A JSON array of claims with the following structure:
       "metric_type": "benchmark_score|funding|percentage|count|null",
       "metric_value": "75.0 or null (as string)",
       "metric_unit": "%|$B|tokens|null",
-      "metric_context": "What the metric measures",
+      "metric_context": "What the metric measures (e.g. 'ARC-AGI', 'Pricing', 'Context Window')",
       "confidence": "high|medium|low",
       "model_relevance": true/false (does this affect AI model capabilities/pricing?)
     }
@@ -99,6 +99,7 @@ export const extractClaimsFromPost = async (
                   entities: { type: Type.ARRAY, items: { type: Type.STRING } },
                   metric_value: { type: Type.STRING, nullable: true },
                   metric_unit: { type: Type.STRING, nullable: true },
+                  metric_context: { type: Type.STRING, nullable: true },
                   confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
                   model_relevance: { type: Type.BOOLEAN },
                 },
@@ -121,6 +122,7 @@ export const extractClaimsFromPost = async (
       original_sentence: c.original_sentence,
       entities: c.entities || [],
       metric_value: c.metric_value ? `${c.metric_value}${c.metric_unit ? c.metric_unit : ''}` : undefined,
+      metric_context: c.metric_context,
       confidence: c.confidence,
       sentiment: "neutral", // LLM extraction didn't ask for sentiment, default neutral
       date: postDate,

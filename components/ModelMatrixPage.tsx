@@ -1,8 +1,10 @@
 import React from 'react';
-import { MODELS } from '../constants';
-import { ArrowUpDown, Zap, DollarSign, Check, X } from 'lucide-react';
+import { useDynamicModels } from '../hooks/useDynamicModels';
+import { ArrowUpDown, Zap, DollarSign, Check, X, RefreshCw } from 'lucide-react';
 
 export const ModelMatrixPage = () => {
+  const { models, loading } = useDynamicModels();
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
@@ -10,6 +12,12 @@ export const ModelMatrixPage = () => {
           <h1 className="text-2xl font-bold text-white mb-1">Model Matrix</h1>
           <p className="text-slate-400 text-sm">Live performance, cost, and capability tracking.</p>
         </div>
+        {loading && (
+             <div className="flex items-center gap-2 text-xs text-indigo-400 animate-pulse">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Syncing with Chronicles...
+             </div>
+        )}
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
@@ -34,7 +42,7 @@ export const ModelMatrixPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {MODELS.map((model) => (
+              {models.map((model) => (
                 <tr key={model.id} className="hover:bg-slate-800/30 transition-colors group">
                   <td className="p-4">
                     <div className="font-medium text-slate-200">{model.name}</div>
@@ -83,9 +91,14 @@ export const ModelMatrixPage = () => {
                   </td>
                   <td className="p-4 max-w-xs">
                     {model.chronicle_snippet ? (
-                      <div className="text-xs text-blue-300 italic border-l-2 border-blue-500 pl-2">
-                        "{model.chronicle_snippet}"
-                      </div>
+                        <div className="flex flex-col gap-1">
+                            <div className="text-xs text-blue-300 italic border-l-2 border-blue-500 pl-2 line-clamp-2">
+                                "{model.chronicle_snippet}"
+                            </div>
+                            {model.last_updated && (
+                                <span className="text-[9px] text-slate-600">Updated: {model.last_updated}</span>
+                            )}
+                        </div>
                     ) : (
                       <span className="text-slate-600 text-xs">No recent signals</span>
                     )}

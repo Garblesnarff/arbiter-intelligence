@@ -49,6 +49,7 @@ export interface ModelEntry {
   benchmarks: Record<string, string | number>; // e.g., { "ARC-AGI": "85%" }
   recommended_for: TaskCategory[];
   chronicle_snippet?: string; // The "intelligence" overlay
+  last_updated?: string; // Date of the last chronicle signal update
 }
 
 export interface TaskAnalysis {
