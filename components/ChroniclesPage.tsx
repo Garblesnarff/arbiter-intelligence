@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { fetchClaimsFromRSS } from '../services/rssService';
 import { MOCK_CLAIMS } from '../constants';
-import { Filter, Search, Calendar, ExternalLink, Cpu, DollarSign, Zap, Activity, Globe } from 'lucide-react';
+import { Claim } from '../types';
+import { Filter, Search, Calendar, ExternalLink, Cpu, DollarSign, Zap, Activity, Globe, RefreshCw } from 'lucide-react';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -13,12 +15,35 @@ const CategoryIcon = ({ category }: { category: string }) => {
 };
 
 export const ChroniclesPage = () => {
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = ['ALL', ...Array.from(new Set(MOCK_CLAIMS.map(c => c.category)))];
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+        const rssClaims = await fetchClaimsFromRSS();
+        if (rssClaims.length > 0) {
+            setClaims(rssClaims);
+        } else {
+            setClaims(MOCK_CLAIMS);
+        }
+    } catch (e) {
+        console.error(e);
+        setClaims(MOCK_CLAIMS);
+    } finally {
+        setLoading(false);
+    }
+  };
 
-  const filteredClaims = MOCK_CLAIMS.filter(claim => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const categories = ['ALL', ...Array.from(new Set(claims.map(c => c.category)))];
+
+  const filteredClaims = claims.filter(claim => {
     const matchesCategory = selectedCategory === 'ALL' || claim.category === selectedCategory;
     const matchesSearch = claim.claim_text.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           claim.entities.some(e => e.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -33,10 +58,23 @@ export const ChroniclesPage = () => {
           <p className="text-slate-400 text-sm">Real-time intelligence extracted from the Innermost Loop.</p>
         </div>
         <div className="flex gap-2">
-           <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
+           <button 
+             onClick={fetchData}
+             disabled={loading}
+             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+           >
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+             Refresh
+           </button>
+           <a 
+             href="https://theinnermostloop.substack.com/" 
+             target="_blank" 
+             rel="noreferrer"
+             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+           >
              <ExternalLink className="w-4 h-4" />
              Source Feed
-           </button>
+           </a>
         </div>
       </div>
 
@@ -78,12 +116,12 @@ export const ChroniclesPage = () => {
           </div>
         ) : (
           filteredClaims.map((claim) => (
-            <div key={claim.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-all group">
+            <div key={claim.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-all group relative">
               <div className="flex items-start gap-4">
                 <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
                   <CategoryIcon category={claim.category} />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 pr-8">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
                     <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                       {claim.category}
@@ -112,6 +150,17 @@ export const ChroniclesPage = () => {
                   </div>
                 </div>
                 
+                {claim.source_url && (
+                    <a 
+                        href={claim.source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="absolute top-5 right-5 text-slate-600 hover:text-indigo-400 transition-colors p-1"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                    </a>
+                )}
+
                 {claim.metric_value && (
                   <div className="hidden sm:flex flex-col items-end pl-4 border-l border-slate-800">
                     <span className="text-sm text-slate-500 uppercase tracking-wider font-bold mb-1">Impact</span>

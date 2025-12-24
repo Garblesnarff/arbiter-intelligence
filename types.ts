@@ -24,13 +24,18 @@ export interface ChroniclePost {
 export interface Claim {
   id: string;
   post_id: string;
-  category: "MODELS" | "CAPITAL" | "BIOLOGY" | "ROBOTICS" | "ENERGY" | "SPACE";
+  category: "MODELS" | "CAPITAL" | "BIOLOGY" | "ROBOTICS" | "ENERGY" | "SPACE" | "COMPUTE" | "GOVERNANCE" | "INFRASTRUCTURE" | "CONSCIOUSNESS";
   claim_text: string;
+  original_sentence?: string;
   entities: string[];
   metric_value?: string;
+  metric_unit?: string;
+  metric_context?: string;
   confidence: "high" | "medium" | "low";
   sentiment: "positive" | "negative" | "neutral";
   date: string;
+  source_url?: string;
+  model_relevance?: boolean; // Critical for Model Matrix updates
 }
 
 export interface ModelEntry {
