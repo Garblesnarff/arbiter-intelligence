@@ -39,6 +39,8 @@ export interface Claim {
   source_name?: string;
   source_author?: string;
   model_relevance?: boolean; // Critical for Model Matrix updates
+  source_feed: string; // Feed ID
+  source_feed_name: string; // Display name
 }
 
 export interface ModelEntry {
@@ -62,6 +64,7 @@ export interface TaskAnalysis {
 }
 
 export interface FeedSource {
+  id: string;
   name: string;
   author: string;
   url: string;

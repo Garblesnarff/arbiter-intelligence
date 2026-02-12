@@ -1,15 +1,16 @@
 
 import React from 'react';
-import { User, Shield, CreditCard, LogOut, Key, Database, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { FEED_SOURCES } from '../constants';
+import { User, CreditCard, LogOut, Key, Database } from 'lucide-react';
+import { FeedStatusPanel } from './FeedStatusPanel';
+import { FEEDS } from '../constants/feeds';
 
 export const SettingsPage = () => {
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
+    <div className="p-6 max-w-5xl mx-auto space-y-8">
       <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
 
       {/* Profile Section */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="p-6 border-b border-slate-800 flex items-start gap-4">
             <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
                 <User className="w-8 h-8 text-slate-400" />
@@ -59,36 +60,16 @@ export const SettingsPage = () => {
 
       {/* Signal Sources Feed Management */}
       <div className="space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-2">
             <Database className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-lg font-bold text-white">Signal Sources</h2>
-            <span className="ml-auto text-xs text-slate-500 font-mono">{FEED_SOURCES.length} Active Feeds</span>
+            <h2 className="text-lg font-bold text-white">Live Signal Sources</h2>
+            <span className="ml-auto text-xs text-slate-500 font-mono">{FEEDS.length} Monitored Feeds</span>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800">
-             {FEED_SOURCES.map((source) => (
-               <div key={source.name} className="p-4 flex items-center gap-4 hover:bg-slate-800/20 transition-colors">
-                  <div className={`w-2 h-2 rounded-full ${source.quality === 'High' ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-100">{source.name}</span>
-                        <span className="text-[10px] text-slate-600 font-mono tracking-tighter uppercase">{source.author}</span>
-                    </div>
-                    <div className="flex gap-2 mt-1">
-                       {source.categories.map(cat => (
-                         <span key={cat} className="text-[9px] px-1.5 py-0.5 bg-slate-950 border border-slate-800 text-slate-500 rounded uppercase font-bold tracking-widest">{cat}</span>
-                       ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                     <span className="text-[10px] font-bold text-emerald-500/80 bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10">ACTIVE</span>
-                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  </div>
-               </div>
-             ))}
-          </div>
-          <p className="text-xs text-slate-500 italic text-center">
-            Signal quality is assessed based on historical accuracy and impact of the publisher's reports.
+          <FeedStatusPanel />
+          
+          <p className="text-xs text-slate-500 italic text-center mt-4">
+            Arbiter extracts insights from high-quality acceleration chronicles in real-time.
           </p>
       </div>
 

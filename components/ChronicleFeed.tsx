@@ -44,9 +44,13 @@ export const ChronicleFeed = () => {
       try {
         const rssClaims = await fetchClaimsFromRSS();
         if (rssClaims.length > 0) {
-          // Sort by model relevance then date for dashboard
-          const sorted = [...rssClaims].sort((a, b) => (b.model_relevance ? 1 : 0) - (a.model_relevance ? 1 : 0));
-          setClaims(sorted.slice(0, 8)); 
+          const sorted = [...rssClaims].sort((a, b) => {
+             // Sort by model relevance then date
+             if (a.model_relevance && !b.model_relevance) return -1;
+             if (!a.model_relevance && b.model_relevance) return 1;
+             return new Date(b.date).getTime() - new Date(a.date).getTime();
+          });
+          setClaims(sorted.slice(0, 10)); 
         } else {
           setClaims(MOCK_CLAIMS); 
         }
@@ -65,11 +69,11 @@ export const ChronicleFeed = () => {
       <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
         <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-indigo-500" />
-          Multi-Source Signal Feed
+          Live Intelligence Stream
         </h2>
         <div className="flex items-center gap-2">
           {loading && <div className="w-3 h-3 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></div>}
-          <span className="text-xs text-slate-500 font-mono">TRACKING {loading ? '...' : claims.length} SIGNALS</span>
+          <span className="text-xs text-slate-500 font-mono">21 SOURCES ACTIVE</span>
         </div>
       </div>
       <div className="divide-y divide-slate-800/50 flex-1 overflow-auto">
@@ -91,22 +95,18 @@ export const ChronicleFeed = () => {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[9px] font-bold tracking-wider text-slate-400 uppercase">{claim.category}</span>
                     <span className="text-[9px] text-slate-600">•</span>
-                    <span className="text-[9px] text-indigo-400 font-semibold">{claim.source_name}</span>
+                    <div className="flex items-center gap-1.5">
+                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.5)]"></div>
+                       <span className="text-[9px] text-indigo-400 font-semibold truncate max-w-[120px]">
+                         {claim.source_feed_name || claim.source_name}
+                       </span>
+                    </div>
                     <span className="text-[9px] text-slate-600">•</span>
                     <span className="text-[9px] text-slate-500">{claim.date}</span>
                   </div>
                   <p className="text-sm text-slate-200 leading-snug group-hover:text-white transition-colors">
                     {claim.claim_text}
                   </p>
-                  {claim.entities.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {claim.entities.slice(0, 3).map((entity) => (
-                        <span key={entity} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                          {entity}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 {claim.source_url && (
                   <a 
@@ -126,7 +126,7 @@ export const ChronicleFeed = () => {
       </div>
       <div className="p-3 bg-slate-950/50 border-t border-slate-800 text-center shrink-0">
         <Link to="/chronicles" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors block w-full h-full">
-          Analyze Full Signal History →
+          Analyze Full Signal Archive →
         </Link>
       </div>
     </div>

@@ -1,31 +1,10 @@
 
-import { Claim, ModelEntry, TaskCategory, FeedSource } from "./types";
+import { Claim, ModelEntry, TaskCategory } from "./types";
+import { FEEDS } from "./constants/feeds";
 
 export const CURRENT_DATE = "Dec 24, 2025";
 
-export const FEED_SOURCES: FeedSource[] = [
-  { name: "The Innermost Loop", author: "Chronicle", url: "https://theinnermostloop.substack.com/feed", categories: ["MODELS", "CAPITAL", "ROBOTICS"], quality: "High" },
-  { name: "Epoch AI Brief", author: "Epoch AI", url: "https://epochai.substack.com/feed", categories: ["MODELS", "COMPUTE", "INFRASTRUCTURE"], quality: "High" },
-  { name: "Import AI", author: "Jack Clark", url: "https://importai.substack.com/feed", categories: ["MODELS", "COMPUTE", "GOVERNANCE"], quality: "High" },
-  { name: "SemiAnalysis", author: "Dylan Patel", url: "https://semianalysis.com/feed", categories: ["COMPUTE", "INFRASTRUCTURE", "ENERGY"], quality: "High" },
-  { name: "Gradient Flow", author: "Ben Lorica", url: "https://gradientflow.substack.com/feed", categories: ["MODELS", "INFRASTRUCTURE", "ENERGY"], quality: "High" },
-  { name: "Interconnects AI", author: "Nathan Lambert", url: "https://interconnects.ai/feed", categories: ["MODELS", "COMPUTE"], quality: "High" },
-  { name: "Robots & Startups", author: "Andra Keay", url: "https://robotsandstartups.substack.com/feed", categories: ["ROBOTICS", "INFRASTRUCTURE"], quality: "Medium" },
-  { name: "Six Degrees of Robotics", author: "Aaron Prather", url: "https://sixdegreesofrobotics.substack.com/feed", categories: ["ROBOTICS", "CAPITAL"], quality: "High" },
-  { name: "Longevity Marketcap", author: "Nathan Cheng", url: "https://sub.longevitymarketcap.com/feed", categories: ["BIOLOGY", "CAPITAL"], quality: "High" },
-  { name: "Where Tech Meets Bio", author: "BiopharmaTrend", url: "https://www.techlifesci.com/feed", categories: ["BIOLOGY", "INFRASTRUCTURE"], quality: "High" },
-  { name: "Data Center Richness", author: "Rich Miller", url: "https://datacenterrichness.substack.com/feed", categories: ["INFRASTRUCTURE", "ENERGY"], quality: "High" },
-  { name: "Newcomer", author: "Eric Newcomer", url: "https://www.newcomer.co/feed", categories: ["CAPITAL", "GOVERNANCE"], quality: "High" },
-  { name: "Enterprise AI Governance", author: "Oliver Patel", url: "https://oliverpatel.substack.com/feed", categories: ["GOVERNANCE", "INFRASTRUCTURE"], quality: "Medium" },
-  { name: "AI Safety Newsletter", author: "Center for AI Safety", url: "https://newsletter.safe.ai/feed", categories: ["GOVERNANCE", "CONSCIOUSNESS"], quality: "High" },
-  { name: "Shtetl-Optimized", author: "Scott Aaronson", url: "https://scottaaronson.blog/feed", categories: ["CONSCIOUSNESS", "MODELS"], quality: "Medium" },
-  { name: "NVIDIA Blog", author: "NVIDIA", url: "https://blogs.nvidia.com/feed", categories: ["COMPUTE", "INFRASTRUCTURE"], quality: "High" },
-  { name: "AWS ML Blog", author: "AWS", url: "https://aws.amazon.com/blogs/machine-learning/feed", categories: ["MODELS", "COMPUTE"], quality: "High" },
-  { name: "Fight Aging", author: "Fight Aging", url: "https://www.fightaging.org/feed", categories: ["BIOLOGY"], quality: "High" },
-  { name: "Space.com", author: "Space.com", url: "https://www.space.com/feeds/all", categories: ["SPACE"], quality: "Medium" },
-  { name: "Reimagine Energy", author: "Reimagine Energy", url: "https://www.reimagine-energy.ai/feed", categories: ["ENERGY", "INFRASTRUCTURE"], quality: "High" },
-  { name: "AI Safety Frontier", author: "Johannes Gasteiger", url: "https://aisafetyfrontier.substack.com/feed", categories: ["GOVERNANCE", "MODELS"], quality: "High" }
-];
+export const FEED_SOURCES = FEEDS;
 
 export const MOCK_CLAIMS: Claim[] = [
   {
@@ -38,7 +17,9 @@ export const MOCK_CLAIMS: Claim[] = [
     confidence: "high",
     sentiment: "positive",
     date: "Dec 24, 2025",
-    source_name: "The Innermost Loop"
+    source_name: "The Innermost Loop",
+    source_feed: "inner-loop",
+    source_feed_name: "The Innermost Loop"
   }
 ];
 
