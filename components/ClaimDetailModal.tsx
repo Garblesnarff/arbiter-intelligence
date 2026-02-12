@@ -2,9 +2,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { X, ExternalLink, Cpu, DollarSign, Zap, Activity, Globe, Rocket, Heart, Shield, Hash, Database, Link as LinkIcon, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, ExternalLink, Cpu, DollarSign, Zap, Activity, Globe, Rocket, Heart, Shield, Hash, Database, Link as LinkIcon, Info, ChevronUp, ChevronDown, Share2 } from 'lucide-react';
 import { Claim } from '../types';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
+import { useToast } from '../contexts/ToastContext';
 import { fetchClaimsFromRSS } from '../services/rssService';
 
 const CategoryIcon = ({ category }: { category: string }) => {
@@ -36,6 +37,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export const ClaimDetailModal = () => {
   const { selectedClaim, claimList, closeClaim, nextClaim, prevClaim, openClaim } = useClaimDetail();
+  const { showToast } = useToast();
   const [allClaims, setAllClaims] = useState<Claim[]>([]);
   const navigate = useNavigate();
 
@@ -82,6 +84,12 @@ export const ClaimDetailModal = () => {
   const handleEntityClick = (entity: string) => {
     closeClaim();
     navigate(`/chronicles?entity=${encodeURIComponent(entity)}`);
+  };
+
+  const handleShare = () => {
+    const shareText = `[${selectedClaim.category}] ${selectedClaim.claim_text}\n\nSource: ${selectedClaim.source_url}`;
+    navigator.clipboard.writeText(shareText);
+    showToast('Claim details copied to clipboard');
   };
 
   const formattedDate = new Date(selectedClaim.date).toLocaleDateString('en-US', {
@@ -251,12 +259,10 @@ export const ClaimDetailModal = () => {
             </a>
           )}
           <button 
-            className="flex-1 border border-slate-800 hover:bg-slate-900 text-slate-300 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-            onClick={() => {
-              navigator.clipboard.writeText(`${selectedClaim.claim_text}\n\nSource: ${selectedClaim.source_url}`);
-              alert('Claim details copied to clipboard!');
-            }}
+            className="flex-1 border border-slate-800 hover:bg-slate-900 text-slate-300 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+            onClick={handleShare}
           >
+            <Share2 className="w-4 h-4" />
             Share Signal
           </button>
         </div>

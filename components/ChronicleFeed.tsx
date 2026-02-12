@@ -4,8 +4,9 @@ import { MOCK_CLAIMS } from '../constants';
 import { fetchClaimsFromRSS } from '../services/rssService';
 import { Claim } from '../types';
 import { Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Activity, Zap, Cpu, Globe, ExternalLink, Rocket, Heart, Shield } from 'lucide-react';
+import { TrendingUp, DollarSign, Activity, Zap, Cpu, Globe, ExternalLink, Rocket, Heart, Shield, Share2 } from 'lucide-react';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
+import { useToast } from '../contexts/ToastContext';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -40,6 +41,7 @@ export const ChronicleFeed = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const { openClaim } = useClaimDetail();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -64,6 +66,14 @@ export const ChronicleFeed = () => {
     };
     loadData();
   }, []);
+
+  const handleShare = (e: React.MouseEvent, claim: Claim) => {
+    e.stopPropagation();
+    const formattedDate = new Date(claim.date).toLocaleDateString();
+    const shareText = `[${claim.category}] ${claim.claim_text} — ${claim.source_feed_name || claim.source_name} (${formattedDate})`;
+    navigator.clipboard.writeText(shareText);
+    showToast('Copied to clipboard');
+  };
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col h-full">
@@ -96,7 +106,7 @@ export const ChronicleFeed = () => {
                 <div className={`mt-1 p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0`}>
                   <CategoryIcon category={claim.category} />
                 </div>
-                <div className="flex-1 pr-6">
+                <div className="flex-1 pr-14">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[9px] font-bold tracking-wider text-slate-400 uppercase">{claim.category}</span>
                     <span className="text-[9px] text-slate-600">•</span>
@@ -113,15 +123,24 @@ export const ChronicleFeed = () => {
                     {claim.claim_text}
                   </p>
                 </div>
-                {claim.source_url && (
+                <div className="absolute top-4 right-4 flex items-center gap-1">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); window.open(claim.source_url, '_blank'); }}
-                    className="absolute top-4 right-4 text-slate-600 hover:text-indigo-400 transition-colors"
-                    title="View Source"
+                    onClick={(e) => handleShare(e, claim)}
+                    className="text-slate-600 hover:text-indigo-400 transition-colors p-1"
+                    title="Share snippet"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <Share2 className="w-3.5 h-3.5" />
                   </button>
-                )}
+                  {claim.source_url && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); window.open(claim.source_url, '_blank'); }}
+                      className="text-slate-600 hover:text-indigo-400 transition-colors p-1"
+                      title="View Source"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))
