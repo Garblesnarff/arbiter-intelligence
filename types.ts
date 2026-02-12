@@ -1,3 +1,4 @@
+
 export enum TaskCategory {
   CODE_GENERATION = "code_generation",
   CODE_REVIEW = "code_review",
@@ -35,6 +36,8 @@ export interface Claim {
   sentiment: "positive" | "negative" | "neutral";
   date: string;
   source_url?: string;
+  source_name?: string;
+  source_author?: string;
   model_relevance?: boolean; // Critical for Model Matrix updates
 }
 
@@ -56,4 +59,12 @@ export interface TaskAnalysis {
   category: TaskCategory;
   reasoning: string;
   complexity: "low" | "medium" | "high";
+}
+
+export interface FeedSource {
+  name: string;
+  author: string;
+  url: string;
+  categories: string[];
+  quality: "High" | "Medium";
 }

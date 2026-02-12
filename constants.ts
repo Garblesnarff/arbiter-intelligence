@@ -1,6 +1,31 @@
-import { Claim, ModelEntry, TaskCategory } from "./types";
+
+import { Claim, ModelEntry, TaskCategory, FeedSource } from "./types";
 
 export const CURRENT_DATE = "Dec 24, 2025";
+
+export const FEED_SOURCES: FeedSource[] = [
+  { name: "The Innermost Loop", author: "Chronicle", url: "https://theinnermostloop.substack.com/feed", categories: ["MODELS", "CAPITAL", "ROBOTICS"], quality: "High" },
+  { name: "Epoch AI Brief", author: "Epoch AI", url: "https://epochai.substack.com/feed", categories: ["MODELS", "COMPUTE", "INFRASTRUCTURE"], quality: "High" },
+  { name: "Import AI", author: "Jack Clark", url: "https://importai.substack.com/feed", categories: ["MODELS", "COMPUTE", "GOVERNANCE"], quality: "High" },
+  { name: "SemiAnalysis", author: "Dylan Patel", url: "https://semianalysis.com/feed", categories: ["COMPUTE", "INFRASTRUCTURE", "ENERGY"], quality: "High" },
+  { name: "Gradient Flow", author: "Ben Lorica", url: "https://gradientflow.substack.com/feed", categories: ["MODELS", "INFRASTRUCTURE", "ENERGY"], quality: "High" },
+  { name: "Interconnects AI", author: "Nathan Lambert", url: "https://interconnects.ai/feed", categories: ["MODELS", "COMPUTE"], quality: "High" },
+  { name: "Robots & Startups", author: "Andra Keay", url: "https://robotsandstartups.substack.com/feed", categories: ["ROBOTICS", "INFRASTRUCTURE"], quality: "Medium" },
+  { name: "Six Degrees of Robotics", author: "Aaron Prather", url: "https://sixdegreesofrobotics.substack.com/feed", categories: ["ROBOTICS", "CAPITAL"], quality: "High" },
+  { name: "Longevity Marketcap", author: "Nathan Cheng", url: "https://sub.longevitymarketcap.com/feed", categories: ["BIOLOGY", "CAPITAL"], quality: "High" },
+  { name: "Where Tech Meets Bio", author: "BiopharmaTrend", url: "https://www.techlifesci.com/feed", categories: ["BIOLOGY", "INFRASTRUCTURE"], quality: "High" },
+  { name: "Data Center Richness", author: "Rich Miller", url: "https://datacenterrichness.substack.com/feed", categories: ["INFRASTRUCTURE", "ENERGY"], quality: "High" },
+  { name: "Newcomer", author: "Eric Newcomer", url: "https://www.newcomer.co/feed", categories: ["CAPITAL", "GOVERNANCE"], quality: "High" },
+  { name: "Enterprise AI Governance", author: "Oliver Patel", url: "https://oliverpatel.substack.com/feed", categories: ["GOVERNANCE", "INFRASTRUCTURE"], quality: "Medium" },
+  { name: "AI Safety Newsletter", author: "Center for AI Safety", url: "https://newsletter.safe.ai/feed", categories: ["GOVERNANCE", "CONSCIOUSNESS"], quality: "High" },
+  { name: "Shtetl-Optimized", author: "Scott Aaronson", url: "https://scottaaronson.blog/feed", categories: ["CONSCIOUSNESS", "MODELS"], quality: "Medium" },
+  { name: "NVIDIA Blog", author: "NVIDIA", url: "https://blogs.nvidia.com/feed", categories: ["COMPUTE", "INFRASTRUCTURE"], quality: "High" },
+  { name: "AWS ML Blog", author: "AWS", url: "https://aws.amazon.com/blogs/machine-learning/feed", categories: ["MODELS", "COMPUTE"], quality: "High" },
+  { name: "Fight Aging", author: "Fight Aging", url: "https://www.fightaging.org/feed", categories: ["BIOLOGY"], quality: "High" },
+  { name: "Space.com", author: "Space.com", url: "https://www.space.com/feeds/all", categories: ["SPACE"], quality: "Medium" },
+  { name: "Reimagine Energy", author: "Reimagine Energy", url: "https://www.reimagine-energy.ai/feed", categories: ["ENERGY", "INFRASTRUCTURE"], quality: "High" },
+  { name: "AI Safety Frontier", author: "Johannes Gasteiger", url: "https://aisafetyfrontier.substack.com/feed", categories: ["GOVERNANCE", "MODELS"], quality: "High" }
+];
 
 export const MOCK_CLAIMS: Claim[] = [
   {
@@ -12,59 +37,8 @@ export const MOCK_CLAIMS: Claim[] = [
     metric_value: "75%",
     confidence: "high",
     sentiment: "positive",
-    date: "Dec 24, 2025"
-  },
-  {
-    id: "c2",
-    post_id: "p1",
-    category: "MODELS",
-    claim_text: "Epoch: AI improvement rates have doubled post-April 2024.",
-    entities: ["Epoch", "AI Progress"],
-    confidence: "medium",
-    sentiment: "positive",
-    date: "Dec 24, 2025"
-  },
-  {
-    id: "c3",
-    post_id: "p2",
-    category: "CAPITAL",
-    claim_text: "Tesla and Amazon investing in Bolivia Data Centers.",
-    entities: ["Tesla", "Amazon", "Bolivia"],
-    confidence: "high",
-    sentiment: "neutral",
-    date: "Dec 22, 2025"
-  },
-  {
-    id: "c4",
-    post_id: "p3",
-    category: "MODELS",
-    claim_text: "Gemini 3 Flash achieves 81.2% on MMMU Pro.",
-    entities: ["Gemini 3 Flash", "MMMU Pro"],
-    metric_value: "81.2%",
-    confidence: "high",
-    sentiment: "positive",
-    date: "Dec 18, 2025"
-  },
-  {
-    id: "c5",
-    post_id: "p3",
-    category: "MODELS",
-    claim_text: "Gemini 3 Flash beats GPT-5.2 on cost by 6x for equivalent coding tasks.",
-    entities: ["Gemini 3 Flash", "GPT-5.2"],
-    metric_value: "6x",
-    confidence: "high",
-    sentiment: "positive",
-    date: "Dec 18, 2025"
-  },
-  {
-    id: "c6",
-    post_id: "p4",
-    category: "ROBOTICS",
-    claim_text: "Boston Dynamics Atlas scheduled for CES 2026 consumer demo.",
-    entities: ["Boston Dynamics", "Atlas"],
-    confidence: "medium",
-    sentiment: "neutral",
-    date: "Dec 21, 2025"
+    date: "Dec 24, 2025",
+    source_name: "The Innermost Loop"
   }
 ];
 
@@ -128,57 +102,5 @@ export const MODELS: ModelEntry[] = [
       TaskCategory.AGENTIC_MULTISTEP
     ],
     chronicle_snippet: "Beats human experts on 70% of GDPval (Dec 12)."
-  },
-  {
-    id: "gpt-5-2-thinking",
-    name: "GPT-5.2 Thinking",
-    provider: "OpenAI",
-    input_cost_per_1m: 10.00,
-    output_cost_per_1m: 40.00,
-    latency_tier: "slow",
-    strengths: ["deep_reasoning", "math", "complex_problems"],
-    benchmarks: {
-      "METR Autonomy": "3.5 hrs"
-    },
-    recommended_for: [
-      TaskCategory.MATH_PROOF,
-      TaskCategory.AGENTIC_MULTISTEP
-    ],
-    chronicle_snippet: "Highest autonomy score recorded (Dec 13)."
-  },
-  {
-    id: "claude-sonnet-4-5",
-    name: "Claude Sonnet 4.5",
-    provider: "Anthropic",
-    input_cost_per_1m: 3.00,
-    output_cost_per_1m: 15.00,
-    latency_tier: "medium",
-    strengths: ["coding", "instruction_following"],
-    benchmarks: {
-        "SWE-bench": "Verified"
-    },
-    recommended_for: [
-      TaskCategory.CODE_GENERATION,
-      TaskCategory.CODE_DEBUGGING,
-      TaskCategory.GENERAL
-    ],
-    chronicle_snippet: "Best instruction following for coding (Nov 20)."
-  },
-    {
-    id: "claude-opus-4-5",
-    name: "Claude Opus 4.5",
-    provider: "Anthropic",
-    input_cost_per_1m: 15.00,
-    output_cost_per_1m: 75.00,
-    latency_tier: "slow",
-    strengths: ["creative_writing", "nuance", "long_form"],
-    benchmarks: {
-        "ARC-AGI-2": "37.64%"
-    },
-    recommended_for: [
-      TaskCategory.CREATIVE_WRITING,
-      TaskCategory.TECHNICAL_WRITING
-    ],
-    chronicle_snippet: "80.9% on SWE-Bench Verified (Nov 25)."
   }
 ];
