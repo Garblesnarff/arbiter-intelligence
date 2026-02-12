@@ -5,6 +5,7 @@ import { fetchClaimsFromRSS } from '../services/rssService';
 import { Claim } from '../types';
 import { Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Activity, Zap, Cpu, Globe, ExternalLink, Rocket, Heart, Shield } from 'lucide-react';
+import { useClaimDetail } from '../contexts/ClaimDetailContext';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -38,6 +39,7 @@ const SkeletonItem = () => (
 export const ChronicleFeed = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
+  const { openClaim } = useClaimDetail();
 
   useEffect(() => {
     const loadData = async () => {
@@ -45,7 +47,6 @@ export const ChronicleFeed = () => {
         const rssClaims = await fetchClaimsFromRSS();
         if (rssClaims.length > 0) {
           const sorted = [...rssClaims].sort((a, b) => {
-             // Sort by model relevance then date
              if (a.model_relevance && !b.model_relevance) return -1;
              if (!a.model_relevance && b.model_relevance) return 1;
              return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -86,7 +87,11 @@ export const ChronicleFeed = () => {
           </>
         ) : (
           claims.map((claim) => (
-            <div key={claim.id} className="p-4 hover:bg-slate-800/30 transition-colors group relative">
+            <div 
+              key={claim.id} 
+              onClick={() => openClaim(claim, claims)}
+              className="p-4 hover:bg-slate-800/30 transition-colors group relative cursor-pointer"
+            >
               <div className="flex items-start gap-3">
                 <div className={`mt-1 p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0`}>
                   <CategoryIcon category={claim.category} />
@@ -102,22 +107,20 @@ export const ChronicleFeed = () => {
                        </span>
                     </div>
                     <span className="text-[9px] text-slate-600">•</span>
-                    <span className="text-[9px] text-slate-500">{claim.date}</span>
+                    <span className="text-[9px] text-slate-500">{new Date(claim.date).toLocaleDateString()}</span>
                   </div>
                   <p className="text-sm text-slate-200 leading-snug group-hover:text-white transition-colors">
                     {claim.claim_text}
                   </p>
                 </div>
                 {claim.source_url && (
-                  <a 
-                    href={claim.source_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); window.open(claim.source_url, '_blank'); }}
                     className="absolute top-4 right-4 text-slate-600 hover:text-indigo-400 transition-colors"
                     title="View Source"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  </button>
                 )}
               </div>
             </div>

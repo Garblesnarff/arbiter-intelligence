@@ -5,6 +5,7 @@ import { ModelOptimizer } from './ModelOptimizer';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { AlertCircle, ArrowUpRight, ArrowDownRight, Zap, Cpu, Calendar, Activity } from 'lucide-react';
 import { useClaimStats } from '../hooks/useClaimStats';
+import { useClaimDetail } from '../contexts/ClaimDetailContext';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -24,6 +25,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export const Dashboard = () => {
   const { topClaim, trendingEntities, chartData, categoryStats, feedStatuses, loading, totalClaims } = useClaimStats();
+  const { openClaim } = useClaimDetail();
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -64,16 +66,17 @@ export const Dashboard = () => {
                 ))}
               </div>
               <div className="flex gap-3">
-                  <a 
-                    href={topClaim.source_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                  <button 
+                    onClick={() => openClaim(topClaim)}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
-                      View Source Details
-                  </a>
-                  <button className="text-slate-400 hover:text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-800 hover:bg-slate-800">
-                      Share Analysis
+                      View Signal Analysis
+                  </button>
+                  <button 
+                    className="text-slate-400 hover:text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-800 hover:bg-slate-800"
+                    onClick={() => window.open(topClaim.source_url, '_blank')}
+                  >
+                      View Original
                   </button>
               </div>
           </div>
@@ -81,13 +84,10 @@ export const Dashboard = () => {
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column: Model Optimizer */}
         <div className="lg:col-span-7 space-y-8">
             <ModelOptimizer />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Velocity Chart */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                   <h3 className="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                     <Activity className="w-4 h-4 text-indigo-500" />
@@ -104,19 +104,8 @@ export const Dashboard = () => {
                           </LineChart>
                       </ResponsiveContainer>
                   </div>
-                  <div className="flex gap-4 mt-4 justify-center">
-                      <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                          <span className="text-[10px] text-slate-400 uppercase font-bold">Total</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                          <span className="text-[10px] text-slate-400 uppercase font-bold">Models</span>
-                      </div>
-                  </div>
               </div>
 
-              {/* Category Pie Chart */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <h3 className="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                   <Zap className="w-4 h-4 text-emerald-500" />
@@ -136,38 +125,16 @@ export const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-slate-950 border border-slate-800 p-2 rounded text-[10px]">
-                                <span className="font-bold text-slate-100">{payload[0].name}</span>: {payload[0].value}
-                              </div>
-                            );
-                          }
-                          return null;
-                        }} 
-                      />
                     </PieChart>
                   </ResponsiveContainer>
-                </div>
-                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2">
-                  {categoryStats.slice(0, 4).map(stat => (
-                    <div key={stat.name} className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stat.color }}></div>
-                      <span className="text-[9px] text-slate-500 font-bold uppercase">{stat.name}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
         </div>
 
-        {/* Right Column: Feed & Stats */}
         <div className="lg:col-span-5 space-y-6">
             <ChronicleFeed />
 
-            {/* Trending Entities */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-slate-400 mb-4 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-slate-500" />
@@ -175,7 +142,11 @@ export const Dashboard = () => {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                     {trendingEntities.length > 0 ? trendingEntities.map((entity) => (
-                        <div key={entity.name} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-full text-xs text-slate-300 hover:border-indigo-500/50 cursor-pointer transition-colors group">
+                        <div 
+                          key={entity.name} 
+                          onClick={() => window.location.href=`#/chronicles?entity=${encodeURIComponent(entity.name)}`}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-full text-xs text-slate-300 hover:border-indigo-500/50 cursor-pointer transition-colors group"
+                        >
                             <span className="group-hover:text-indigo-400 transition-colors">{entity.name}</span>
                             <span className="text-[10px] text-slate-600 font-mono">{entity.count}</span>
                             {entity.trend === 'up' ? (
@@ -192,42 +163,7 @@ export const Dashboard = () => {
                 </div>
             </div>
         </div>
-
       </div>
-
-      {/* Feed Health Summary Row */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-             <Calendar className="w-4 h-4 text-slate-500" />
-             <div>
-               <div className="text-xs font-bold text-slate-300">SYSTEM HEALTH</div>
-               <div className="text-[10px] text-slate-500 uppercase tracking-widest">{feedStatuses.filter(f => f.status === 'success').length}/21 FEEDS ACTIVE</div>
-             </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-             {feedStatuses.map((feed) => (
-               <div 
-                 key={feed.id} 
-                 title={`${feed.name}: ${feed.status}`}
-                 className={`w-2.5 h-2.5 rounded-full transition-all hover:scale-125 cursor-help ${
-                   feed.status === 'success' ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.3)]' :
-                   feed.status === 'error' ? 'bg-rose-500' :
-                   'bg-slate-700'
-                 }`}
-               />
-             ))}
-             {feedStatuses.length === 0 && Array.from({length: 21}).map((_, i) => (
-               <div key={i} className="w-2.5 h-2.5 rounded-full bg-slate-800 animate-pulse" />
-             ))}
-          </div>
-          <div className="text-right">
-             <div className="text-xs font-mono text-indigo-400 font-bold">{totalClaims}</div>
-             <div className="text-[9px] text-slate-600 uppercase font-bold tracking-tighter">TOTAL EXTRACTED SIGNALS</div>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 };

@@ -19,13 +19,12 @@ import {
   Rocket, 
   Heart, 
   Shield, 
-  LayoutList, 
   Maximize2, 
   Minimize2,
-  ChevronDown,
   Hash,
   Database
 } from 'lucide-react';
+import { useClaimDetail } from '../contexts/ClaimDetailContext';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -66,10 +65,10 @@ export const ChroniclesPage = () => {
            (window.innerWidth < 768 ? 'compact' : 'expanded');
   });
   
+  const { openClaim } = useClaimDetail();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
 
-  // Keyboard shortcut for Cmd+F
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
@@ -84,10 +83,15 @@ export const ChroniclesPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const sourceParam = params.get('source');
+    const entityParam = params.get('entity');
+    
     if (sourceParam) {
       setSelectedSources(new Set([sourceParam]));
     }
-  }, [location]);
+    if (entityParam) {
+      setSearchTerm(entityParam);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     localStorage.setItem('arbiter_view_mode', viewMode);
@@ -115,24 +119,6 @@ export const ChroniclesPage = () => {
   }, []);
 
   const categories = ['ALL', 'MODELS', 'COMPUTE', 'CAPITAL', 'ROBOTICS', 'BIOLOGY', 'ENERGY', 'SPACE', 'GOVERNANCE', 'INFRASTRUCTURE', 'CONSCIOUSNESS'];
-  const feedNames = useMemo(() => FEEDS.map(f => f.name), []);
-
-  const toggleSource = (sourceName: string) => {
-    setSelectedSources(prev => {
-      const next = new Set(prev);
-      if (sourceName === 'ALL') {
-        return new Set(['ALL']);
-      }
-      next.delete('ALL');
-      if (next.has(sourceName)) {
-        next.delete(sourceName);
-        if (next.size === 0) next.add('ALL');
-      } else {
-        next.add(sourceName);
-      }
-      return next;
-    });
-  };
 
   const filteredClaims = useMemo(() => {
     return claims.filter(claim => {
@@ -147,31 +133,8 @@ export const ChroniclesPage = () => {
     });
   }, [claims, selectedCategory, selectedSources, searchTerm]);
 
-  const categoryBreakdown = useMemo(() => {
-    if (filteredClaims.length === 0) return [];
-    const counts: Record<string, number> = {};
-    filteredClaims.forEach(c => {
-      counts[c.category] = (counts[c.category] || 0) + 1;
-    });
-    return Object.entries(counts).map(([cat, count]) => ({
-      cat,
-      count,
-      percent: (count / filteredClaims.length) * 100
-    })).sort((a, b) => b.count - a.count);
-  }, [filteredClaims]);
-
-  const sourceCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    claims.forEach(c => {
-      const name = c.source_feed_name || c.source_name || 'Unknown';
-      counts[name] = (counts[name] || 0) + 1;
-    });
-    return counts;
-  }, [claims]);
-
   const groupedClaims = useMemo(() => {
     const groups: Record<string, Claim[]> = {};
-    
     filteredClaims.forEach(claim => {
       const date = new Date(claim.date);
       const key = isNaN(date.getTime()) 
@@ -181,8 +144,6 @@ export const ChroniclesPage = () => {
       if (!groups[key]) groups[key] = [];
       groups[key].push(claim);
     });
-
-    // Sort keys by date descending
     return Object.entries(groups).sort((a, b) => {
       if (a[0] === 'Recently Discovered') return -1;
       if (b[0] === 'Recently Discovered') return 1;
@@ -225,34 +186,6 @@ export const ChroniclesPage = () => {
         </div>
       </div>
 
-      {/* Category Breakdown Bar */}
-      {filteredClaims.length > 0 && (
-        <div className="space-y-2">
-          <div className="h-1.5 w-full bg-slate-800 rounded-full flex overflow-hidden">
-            {categoryBreakdown.map((item) => (
-              <div 
-                key={item.cat}
-                style={{ width: `${item.percent}%` }}
-                className={`${CATEGORY_COLORS[item.cat] || 'bg-slate-500'} transition-all`}
-                title={`${item.cat}: ${item.count} claims (${Math.round(item.percent)}%)`}
-              />
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-             {categoryBreakdown.slice(0, 6).map(item => (
-                <div key={item.cat} className="flex items-center gap-1.5">
-                   <div className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[item.cat] || 'bg-slate-500'}`} />
-                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                      {item.cat} <span className="text-slate-600 ml-0.5">{Math.round(item.percent)}%</span>
-                   </span>
-                </div>
-             ))}
-             {categoryBreakdown.length > 6 && <span className="text-[10px] text-slate-600 font-bold">...</span>}
-          </div>
-        </div>
-      )}
-
-      {/* Filter Section */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1 group">
@@ -265,15 +198,8 @@ export const ChroniclesPage = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
             />
-            {searchTerm && (
-               <div className="absolute right-3 top-2.5 text-[10px] text-slate-500 font-mono">
-                 {filteredClaims.length} RESULTS
-               </div>
-            )}
           </div>
         </div>
-        
-        {/* Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <div className="p-1.5 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
             <Filter className="w-3.5 h-3.5 text-slate-500" />
@@ -292,48 +218,13 @@ export const ChroniclesPage = () => {
             </button>
           ))}
         </div>
-
-        {/* Source Pills Multi-select */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide border-t border-slate-800 pt-3">
-          <div className="p-1.5 bg-slate-950 rounded-lg border border-slate-800 shrink-0">
-            <Globe className="w-3.5 h-3.5 text-slate-500" />
-          </div>
-          <button
-            onClick={() => toggleSource('ALL')}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all border ${
-              selectedSources.has('ALL')
-                ? 'bg-indigo-600 text-white border-indigo-500' 
-                : 'bg-slate-950 text-slate-400 hover:bg-slate-800 border-slate-800'
-            }`}
-          >
-            All Sources
-          </button>
-          {feedNames.map(name => (
-            <button
-              key={name}
-              onClick={() => toggleSource(name)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-all border flex items-center gap-2 ${
-                selectedSources.has(name)
-                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50' 
-                  : 'bg-slate-950 text-slate-500 hover:bg-slate-800 border-slate-800'
-              }`}
-            >
-              {name}
-              <span className={`px-1 rounded text-[8px] font-mono ${selectedSources.has(name) ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                {sourceCounts[name] || 0}
-              </span>
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Main Signal List with Date Grouping */}
       <div className="space-y-8">
         {loading ? (
            Array.from({length: 3}).map((_, i) => (
              <div key={i} className="space-y-4">
                 <div className="h-6 w-48 bg-slate-800 rounded animate-pulse" />
-                <div className="bg-slate-900/50 border border-slate-800 h-24 rounded-xl animate-pulse" />
                 <div className="bg-slate-900/50 border border-slate-800 h-24 rounded-xl animate-pulse" />
              </div>
            ))
@@ -341,10 +232,9 @@ export const ChroniclesPage = () => {
           <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-slate-800 border-dashed">
             <Globe className="w-12 h-12 text-slate-700 mx-auto mb-4" />
             <h3 className="text-slate-300 font-medium text-lg">No matching signals found</h3>
-            <p className="text-slate-500 text-sm mb-6">Try adjusting your filters or search keywords.</p>
             <button 
               onClick={() => {setSelectedSources(new Set(['ALL'])); setSelectedCategory('ALL'); setSearchTerm('')}} 
-              className="text-indigo-400 text-sm font-semibold hover:text-indigo-300 px-4 py-2 bg-indigo-500/10 rounded-lg transition-colors"
+              className="mt-4 text-indigo-400 text-sm font-semibold hover:text-indigo-300 px-4 py-2 bg-indigo-500/10 rounded-lg transition-colors"
             >
               Clear all filters
             </button>
@@ -352,24 +242,18 @@ export const ChroniclesPage = () => {
         ) : (
           groupedClaims.map(([date, dateClaims]) => (
             <div key={date} className="relative">
-              {/* Sticky Date Header */}
               <div className="sticky top-16 z-20 flex items-center justify-between py-2 bg-slate-950/95 backdrop-blur-sm border-b border-slate-800/50 mb-4">
                  <div className="flex items-center gap-3">
                     <Calendar className="w-4 h-4 text-indigo-500" />
-                    <h2 className="text-sm font-bold text-slate-100 tracking-tight">
-                      {date}
-                    </h2>
-                 </div>
-                 <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                    {dateClaims.length} {dateClaims.length === 1 ? 'Signal' : 'Signals'}
+                    <h2 className="text-sm font-bold text-slate-100 tracking-tight">{date}</h2>
                  </div>
               </div>
-
               <div className="grid grid-cols-1 gap-3">
                 {dateClaims.map((claim) => (
                   <div 
                     key={claim.id} 
-                    className={`bg-slate-900 border border-slate-800 rounded-xl transition-all group relative overflow-hidden
+                    onClick={() => openClaim(claim, filteredClaims)}
+                    className={`bg-slate-900 border border-slate-800 rounded-xl transition-all group relative overflow-hidden cursor-pointer
                       ${viewMode === 'compact' ? 'p-3 hover:bg-slate-800/30' : 'p-5 hover:border-slate-600 hover:shadow-xl hover:shadow-indigo-500/5'}
                     `}
                   >
@@ -379,7 +263,6 @@ export const ChroniclesPage = () => {
                       `}>
                         <CategoryIcon category={claim.category} />
                       </div>
-
                       <div className="flex-1 pr-8 min-w-0">
                         {viewMode === 'compact' ? (
                           <div className="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1">
@@ -407,49 +290,29 @@ export const ChroniclesPage = () => {
                                   {claim.source_feed_name || claim.source_name}
                                 </span>
                               </div>
-                              {claim.confidence && (
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${
-                                  claim.confidence === 'high' ? 'text-emerald-400 border-emerald-900/30 bg-emerald-900/10' :
-                                  claim.confidence === 'medium' ? 'text-yellow-400 border-yellow-900/30 bg-yellow-900/10' :
-                                  'text-slate-400 border-slate-800 bg-slate-800/20'
-                                }`}>
-                                  {claim.confidence} Confidence
-                                </span>
-                              )}
                             </div>
-                            
                             <h3 className="text-slate-200 text-base leading-snug mb-3 group-hover:text-white transition-colors font-medium">
                               {claim.claim_text}
                             </h3>
-
                             <div className="flex flex-wrap items-center gap-2">
-                              {claim.entities.map((entity) => (
-                                <span key={entity} className="text-[10px] px-2 py-1 rounded bg-slate-800/50 text-slate-400 border border-slate-800/80 hover:text-slate-200 transition-colors">
+                              {claim.entities.slice(0, 5).map((entity) => (
+                                <span key={entity} className="text-[10px] px-2 py-1 rounded bg-slate-800/50 text-slate-400 border border-slate-800/80">
                                   {entity}
                                 </span>
                               ))}
-                              {claim.metric_value && (
-                                <span className="text-[10px] px-2 py-1 rounded bg-indigo-950/30 text-indigo-300 border border-indigo-900/50 font-mono">
-                                  {claim.metric_context ? `${claim.metric_context}: ` : ''}{claim.metric_value}
-                                </span>
-                              )}
                             </div>
                           </>
                         )}
                       </div>
-                      
                       {claim.source_url && (
-                          <a 
-                              href={claim.source_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
+                          <button 
+                              onClick={(e) => { e.stopPropagation(); window.open(claim.source_url, '_blank'); }}
                               className={`absolute text-slate-600 hover:text-indigo-400 transition-all p-1.5 bg-slate-950/0 hover:bg-slate-950 rounded-lg
                                 ${viewMode === 'compact' ? 'right-3 top-2.5' : 'right-4 top-4'}
                               `}
-                              title="View full chronicle entry"
                           >
                               <ExternalLink className="w-4 h-4" />
-                          </a>
+                          </button>
                       )}
                     </div>
                   </div>
@@ -458,28 +321,6 @@ export const ChroniclesPage = () => {
             </div>
           ))
         )}
-      </div>
-
-      <div className="py-12 border-t border-slate-800 text-center space-y-4">
-          <p className="text-slate-500 text-sm max-w-lg mx-auto">
-            Arbiter monitors 21 specialized acceleration signals to identify early trends in model capability, compute availability, and energy infrastructure.
-          </p>
-          <div className="flex justify-center gap-8">
-            <div className="text-center">
-              <div className="text-xl font-bold text-white">{claims.length}</div>
-              <div className="text-[10px] text-slate-600 uppercase font-bold">Signals Captured</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-white">{FEEDS.length}</div>
-              <div className="text-[10px] text-slate-600 uppercase font-bold">Monitored Feeds</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-white">
-                {new Set(claims.flatMap(c => c.entities)).size}
-              </div>
-              <div className="text-[10px] text-slate-600 uppercase font-bold">Tracked Entities</div>
-            </div>
-          </div>
       </div>
     </div>
   );
