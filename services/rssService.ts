@@ -69,9 +69,10 @@ export const fetchClaimsFromRSS = async (): Promise<Claim[]> => {
         const pubDateStr = latestItem.querySelector('pubDate')?.textContent || '';
         
         const dateObj = new Date(pubDateStr);
+        // Use ISO string for reliable sorting and grouping in the UI
         const formattedDate = isNaN(dateObj.getTime()) 
-          ? 'Recent' 
-          : dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          ? new Date().toISOString() 
+          : dateObj.toISOString();
 
         const cacheKey = `${CACHE_KEY_PREFIX}${source.id}_${link}`;
         const cachedData = localStorage.getItem(cacheKey);
