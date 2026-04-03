@@ -71,7 +71,7 @@ export const ModelOptimizer = () => {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe your task (e.g., 'Review this Python code for bugs' or 'Write a creative story about Mars')..."
-            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[120px] resize-none transition-all"
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 pb-14 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[120px] resize-none transition-all"
           />
           {/* Keyboard shortcut hint */}
           {!prompt && (

@@ -4,7 +4,7 @@ import { ChronicleFeed } from './ChronicleFeed';
 import { ModelOptimizer } from './ModelOptimizer';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { AlertCircle, ArrowUpRight, ArrowDownRight, Zap, Cpu, Activity } from 'lucide-react';
-import { useClaimStats } from '../hooks/useClaimStats';
+import { useClaimStats, CategoryStat } from '../hooks/useClaimStats';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { openExternalUrl } from '../utils/browser';
 
@@ -34,6 +34,7 @@ const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
   return null;
 };
 
+
 export const Dashboard = () => {
   const { topClaim, trendingEntities, chartData, categoryStats, loading } = useClaimStats();
   const { openClaim } = useClaimDetail();
@@ -41,7 +42,7 @@ export const Dashboard = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
-      
+
       {/* Top Signal - The "Front-row seat" */}
       {loading ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-[200px] animate-pulse flex flex-col justify-center">
@@ -56,7 +57,7 @@ export const Dashboard = () => {
           </div>
           <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-red-500/10 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 animate-pulse uppercase tracking-wider">
+                  <span className="bg-indigo-500/15 text-indigo-400 text-[11px] font-bold px-2 py-0.5 rounded border border-indigo-500/25 uppercase tracking-wider">
                       PRIMARY SIGNAL
                   </span>
                   <span className="text-slate-500 text-xs font-mono">
@@ -71,20 +72,24 @@ export const Dashboard = () => {
                   <Cpu className="w-4 h-4" />
                   <span className="text-sm font-medium">{topClaim.source_feed_name}</span>
                 </div>
-                {topClaim.entities.slice(0, 3).map(entity => (
-                  <span key={entity} className="text-xs px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">
-                    {entity}
-                  </span>
-                ))}
+                {topClaim.entities
+                  .filter(entity => entity !== topClaim.source_feed_name && entity !== topClaim.source_name)
+                  .slice(0, 3)
+                  .map(entity => (
+                    <span key={entity} className="text-xs px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">
+                      {entity}
+                    </span>
+                  ))
+                }
               </div>
               <div className="flex gap-3">
-                  <button 
+                  <button
                     onClick={() => openClaim(topClaim)}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
                       View Signal Analysis
                   </button>
-                  <button 
+                  <button
                     className="text-slate-400 hover:text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-800 hover:bg-slate-800"
                     onClick={() => openExternalUrl(topClaim.source_url)}
                   >
@@ -98,7 +103,7 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7 space-y-8">
             <ModelOptimizer />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                   <h3 className="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
@@ -123,22 +128,49 @@ export const Dashboard = () => {
                   <Zap className="w-4 h-4 text-emerald-500" />
                   Domain Distribution
                 </h3>
-                <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryStats}
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {categoryStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div className="flex items-center gap-4 h-[200px]">
+                  <div className="w-[140px] h-[140px] shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryStats}
+                          innerRadius={40}
+                          outerRadius={65}
+                          paddingAngle={3}
+                          dataKey="value"
+                          cx="50%"
+                          cy="50%"
+                        >
+                          {categoryStats.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload as CategoryStat;
+                              return (
+                                <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg shadow-xl text-xs">
+                                  <span className="font-bold text-slate-200">{data.name}</span>
+                                  <span className="text-slate-400 ml-2">{data.value}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-col gap-1.5 min-w-0">
+                    {categoryStats.map((stat) => (
+                      <div key={stat.name} className="flex items-center gap-2 text-xs">
+                        <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: stat.color }} />
+                        <span className="text-slate-400 truncate">{stat.name}</span>
+                        <span className="text-slate-500 font-mono ml-auto">{stat.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -154,13 +186,13 @@ export const Dashboard = () => {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                     {trendingEntities.length > 0 ? trendingEntities.map((entity) => (
-                        <div 
-                          key={entity.name} 
+                        <div
+                          key={entity.name}
                           onClick={() => navigate(`/chronicles?entity=${encodeURIComponent(entity.name)}`)}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-full text-xs text-slate-300 hover:border-indigo-500/50 cursor-pointer transition-colors group"
                         >
                             <span className="group-hover:text-indigo-400 transition-colors">{entity.name}</span>
-                            <span className="text-[10px] text-slate-600 font-mono">{entity.count}</span>
+                            <span className="text-[11px] text-slate-600 font-mono">{entity.count}</span>
                             {entity.trend === 'up' ? (
                               <ArrowUpRight className="w-3 h-3 text-emerald-500" />
                             ) : entity.trend === 'down' ? (

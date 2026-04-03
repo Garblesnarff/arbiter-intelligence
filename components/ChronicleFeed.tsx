@@ -2,24 +2,12 @@
 import React, { useMemo } from 'react';
 import { Claim } from '../types';
 import { Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Activity, Zap, Cpu, Globe, ExternalLink, Rocket, Heart, Shield, Share2 } from 'lucide-react';
+import { TrendingUp, ExternalLink, Share2 } from 'lucide-react';
+import { CategoryIcon } from './shared/CategoryIcon';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { useToast } from '../contexts/ToastContext';
 import { useClaimsData } from '../contexts/ClaimsContext';
 import { copyTextToClipboard, openExternalUrl } from '../utils/browser';
-
-const CategoryIcon = ({ category }: { category: string }) => {
-  switch (category) {
-    case 'MODELS': return <Cpu className="w-4 h-4 text-blue-400" />;
-    case 'CAPITAL': return <DollarSign className="w-4 h-4 text-emerald-400" />;
-    case 'ENERGY': return <Zap className="w-4 h-4 text-yellow-400" />;
-    case 'ROBOTICS': return <Activity className="w-4 h-4 text-orange-400" />;
-    case 'SPACE': return <Rocket className="w-4 h-4 text-indigo-400" />;
-    case 'BIOLOGY': return <Heart className="w-4 h-4 text-rose-400" />;
-    case 'GOVERNANCE': return <Shield className="w-4 h-4 text-slate-300" />;
-    default: return <Globe className="w-4 h-4 text-slate-400" />;
-  }
-};
 
 const SkeletonItem = () => (
   <div className="p-4 border-b border-slate-800/50 animate-pulse">
@@ -82,42 +70,42 @@ export const ChronicleFeed = () => {
           </>
         ) : (
           displayedClaims.map((claim) => (
-            <div 
-              key={claim.id} 
+            <div
+              key={claim.id}
               onClick={() => openClaim(claim, displayedClaims)}
               className="p-4 hover:bg-slate-800/30 transition-colors group relative cursor-pointer"
             >
               <div className="flex items-start gap-3">
-                <div className={`mt-1 p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0`}>
+                <div className="mt-1 p-1.5 rounded-lg bg-slate-950 border border-slate-800 shrink-0">
                   <CategoryIcon category={claim.category} />
                 </div>
                 <div className="flex-1 pr-14">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[9px] font-bold tracking-wider text-slate-400 uppercase">{claim.category}</span>
-                    <span className="text-[9px] text-slate-600">•</span>
+                    <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">{claim.category}</span>
+                    <span className="text-[11px] text-slate-600">·</span>
                     <div className="flex items-center gap-1.5">
                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.5)]"></div>
-                       <span className="text-[9px] text-indigo-400 font-semibold truncate max-w-[120px]">
+                       <span className="text-[11px] text-indigo-400 font-semibold truncate max-w-[120px]">
                          {claim.source_feed_name || claim.source_name}
                        </span>
                     </div>
-                    <span className="text-[9px] text-slate-600">•</span>
-                    <span className="text-[9px] text-slate-500">{new Date(claim.date).toLocaleDateString()}</span>
+                    <span className="text-[11px] text-slate-600">·</span>
+                    <span className="text-[11px] text-slate-500">{new Date(claim.date).toLocaleDateString()}</span>
                   </div>
                   <p className="text-sm text-slate-200 leading-snug group-hover:text-white transition-colors">
                     {claim.claim_text}
                   </p>
                 </div>
                 <div className="absolute top-4 right-4 flex items-center gap-1">
-                  <button 
+                  <button
                     onClick={(e) => handleShare(e, claim)}
-                    className="text-slate-600 hover:text-indigo-400 transition-colors p-1"
+                    className="text-slate-500 hover:text-indigo-400 md:text-slate-600 transition-colors p-1"
                     title="Share snippet"
                   >
                     <Share2 className="w-3.5 h-3.5" />
                   </button>
                   {claim.source_url && (
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         const opened = openExternalUrl(claim.source_url);
@@ -125,7 +113,7 @@ export const ChronicleFeed = () => {
                           showToast('Unable to open source link', 'error');
                         }
                       }}
-                      className="text-slate-600 hover:text-indigo-400 transition-colors p-1"
+                      className="text-slate-500 hover:text-indigo-400 md:text-slate-600 transition-colors p-1"
                       title="View Source"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />

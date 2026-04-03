@@ -39,12 +39,17 @@ export const useClaimStats = () => {
     if (claims.length === 0) return null;
 
     return [...claims].sort((a, b) => {
-      const aScore = (a.category === 'MODELS' || a.category === 'COMPUTE' ? 10 : 0) + 
-                     (a.metric_value ? 5 : 0) + 
-                     (a.confidence === 'high' ? 3 : a.confidence === 'medium' ? 1 : 0);
-      const bScore = (b.category === 'MODELS' || b.category === 'COMPUTE' ? 10 : 0) + 
-                     (b.metric_value ? 5 : 0) + 
-                     (b.confidence === 'high' ? 3 : b.confidence === 'medium' ? 1 : 0);
+      const isFallback = (c: typeof a) => c.entities.length <= 1 && !c.metric_value && !c.original_sentence;
+      const aScore = (isFallback(a) ? -20 : 0) +
+                     (a.category === 'MODELS' || a.category === 'COMPUTE' ? 10 : 0) +
+                     (a.metric_value ? 5 : 0) +
+                     (a.confidence === 'high' ? 3 : a.confidence === 'medium' ? 1 : 0) +
+                     (a.entities.length >= 2 ? 2 : 0);
+      const bScore = (isFallback(b) ? -20 : 0) +
+                     (b.category === 'MODELS' || b.category === 'COMPUTE' ? 10 : 0) +
+                     (b.metric_value ? 5 : 0) +
+                     (b.confidence === 'high' ? 3 : b.confidence === 'medium' ? 1 : 0) +
+                     (b.entities.length >= 2 ? 2 : 0);
       
       if (bScore !== aScore) return bScore - aScore;
       return new Date(b.date).getTime() - new Date(a.date).getTime();

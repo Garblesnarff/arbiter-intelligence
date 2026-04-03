@@ -14,7 +14,7 @@ export const ToastContainer = () => {
         <div
           key={toast.id}
           className={`
-            flex items-center gap-3 px-4 py-3 rounded-lg shadow-2xl border min-w-[280px] animate-in slide-in-from-right duration-300
+            flex items-center gap-3 px-4 py-3 rounded-lg shadow-2xl border min-w-[280px] animate-slide-in-bottom
             ${toast.type === 'success' ? 'bg-slate-900 border-emerald-500/30 text-emerald-400' : 
               toast.type === 'error' ? 'bg-slate-900 border-red-500/30 text-red-400' : 
               'bg-slate-900 border-blue-500/30 text-blue-400'}
