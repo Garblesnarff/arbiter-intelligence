@@ -1,19 +1,17 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { Dashboard } from './components/Dashboard';
-import { ChroniclesPage } from './components/ChroniclesPage';
-import { ModelMatrixPage } from './components/ModelMatrixPage';
-import { AlertsPage } from './components/AlertsPage';
-import { SettingsPage } from './components/SettingsPage';
-import { LayoutDashboard, BookOpen, Settings, Sliders, Bell, User, Menu, X } from 'lucide-react';
-import { LAST_FETCH_KEY } from './services/rssService';
-import { ClaimDetailProvider } from './contexts/ClaimDetailContext';
-import { ToastProvider } from './contexts/ToastContext';
+import { LayoutDashboard, BookOpen, Settings, Sliders, Bell, User, Menu, X, type LucideIcon } from 'lucide-react';
 import { ClaimDetailModal } from './components/ClaimDetailModal';
 import { ToastContainer } from './components/Toast';
+import { useClaimsData } from './contexts/ClaimsContext';
 
-const SidebarItem = ({ icon: Icon, label, to, onClick }: { icon: any, label: string, to: string, onClick?: () => void }) => (
+const Dashboard = lazy(async () => ({ default: (await import('./components/Dashboard')).Dashboard }));
+const ChroniclesPage = lazy(async () => ({ default: (await import('./components/ChroniclesPage')).ChroniclesPage }));
+const ModelMatrixPage = lazy(async () => ({ default: (await import('./components/ModelMatrixPage')).ModelMatrixPage }));
+const AlertsPage = lazy(async () => ({ default: (await import('./components/AlertsPage')).AlertsPage }));
+const SettingsPage = lazy(async () => ({ default: (await import('./components/SettingsPage')).SettingsPage }));
+
+const SidebarItem = ({ icon: Icon, label, to, onClick }: { icon: LucideIcon; label: string; to: string; onClick?: () => void }) => (
   <NavLink 
     to={to}
     onClick={onClick}
@@ -28,34 +26,29 @@ const SidebarItem = ({ icon: Icon, label, to, onClick }: { icon: any, label: str
   </NavLink>
 );
 
+const RouteFallback = () => (
+  <div className="p-6 max-w-7xl mx-auto">
+    <div className="h-40 rounded-2xl border border-slate-800 bg-slate-900 animate-pulse" />
+  </div>
+);
+
 const App = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const location = useLocation();
+  const { lastFetchedAt } = useClaimsData();
+  const lastUpdate = useMemo(() => {
+    if (!lastFetchedAt) {
+      return null;
+    }
+    return new Date(lastFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, [lastFetchedAt]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
 
-  useEffect(() => {
-    const checkStatus = () => {
-      const ts = localStorage.getItem(LAST_FETCH_KEY);
-      if (ts) {
-        const date = new Date(ts);
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        setLastUpdate(timeStr);
-      }
-    };
-    
-    checkStatus();
-    const interval = setInterval(checkStatus, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <ToastProvider>
-      <ClaimDetailProvider>
-        <div className="min-h-screen bg-slate-950 flex text-slate-200">
+    <div className="min-h-screen bg-slate-950 flex text-slate-200">
           {isMobileMenuOpen && (
             <div 
               className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
@@ -138,13 +131,15 @@ const App = () => {
             </header>
 
             <div className="flex-1 overflow-y-auto">
-                <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/chronicles" element={<ChroniclesPage />} />
-                    <Route path="/models" element={<ModelMatrixPage />} />
-                    <Route path="/alerts" element={<AlertsPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                </Routes>
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/chronicles" element={<ChroniclesPage />} />
+                      <Route path="/models" element={<ModelMatrixPage />} />
+                      <Route path="/alerts" element={<AlertsPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                  </Routes>
+                </Suspense>
             </div>
           </main>
 
@@ -152,8 +147,6 @@ const App = () => {
           <ClaimDetailModal />
           <ToastContainer />
         </div>
-      </ClaimDetailProvider>
-    </ToastProvider>
   );
 };
 

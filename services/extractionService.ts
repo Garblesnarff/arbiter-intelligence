@@ -2,6 +2,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Claim } from "../types";
 
+const CLAIM_CATEGORIES = new Set<Claim["category"]>([
+  "MODELS",
+  "CAPITAL",
+  "BIOLOGY",
+  "ROBOTICS",
+  "ENERGY",
+  "SPACE",
+  "COMPUTE",
+  "GOVERNANCE",
+  "INFRASTRUCTURE",
+  "CONSCIOUSNESS",
+]);
+
+const getApiKey = () =>
+  import.meta.env.VITE_GEMINI_API_KEY
+  || (typeof process !== 'undefined' ? process.env.API_KEY || process.env.GEMINI_API_KEY : undefined);
+
 // Helper to strip HTML tags to save tokens
 const stripHtml = (html: string) => {
   const tmp = document.createElement("DIV");
@@ -37,13 +54,16 @@ export const extractClaimsFromPost = async (
   postUrl: string,
   postDate: string
 ): Promise<Claim[]> => {
-  // Always initialize GoogleGenAI with the API key from process.env.API_KEY directly
-  // Create a new instance right before the call as per guidelines
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.warn("Gemini extraction skipped because no API key is configured.");
+    return [];
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const cleanText = stripHtml(rawHtml);
-    // Limit text length to avoid token limits for very long posts
     const truncatedText = cleanText.substring(0, 15000); 
 
     const response = await ai.models.generateContent({
@@ -78,25 +98,62 @@ export const extractClaimsFromPost = async (
       },
     });
 
-    // Access text directly from response.text property
-    const result = JSON.parse(response.text || "{ \"claims\": [] }");
+    let result: { claims?: Array<Record<string, unknown>> } = { claims: [] };
+    try {
+      result = JSON.parse(response.text || '{ "claims": [] }');
+    } catch (error) {
+      console.warn("Gemini extraction returned invalid JSON:", error);
+      return [];
+    }
     
-    // Map response to our internal Claim type
-    return result.claims.map((c: any, index: number) => ({
-      id: `${postUrl}-${index}`,
-      post_id: postUrl,
-      category: c.category,
-      claim_text: c.claim_text,
-      original_sentence: c.original_sentence,
-      entities: c.entities || [],
-      metric_value: c.metric_value ? `${c.metric_value}${c.metric_unit ? c.metric_unit : ''}` : undefined,
-      metric_context: c.metric_context,
-      confidence: c.confidence,
-      sentiment: "neutral",
-      date: postDate,
-      source_url: postUrl,
-      model_relevance: c.model_relevance
-    }));
+    const claims = Array.isArray(result.claims) ? result.claims : [];
+
+    return claims.flatMap((claim, index) => {
+      const claimText = typeof claim.claim_text === "string" ? claim.claim_text.trim() : "";
+      if (!claimText) {
+        return [];
+      }
+
+      const category = CLAIM_CATEGORIES.has(claim.category as Claim["category"])
+        ? (claim.category as Claim["category"])
+        : "MODELS";
+      const confidence = claim.confidence === "low" || claim.confidence === "medium" || claim.confidence === "high"
+        ? claim.confidence
+        : "medium";
+      const entities = Array.isArray(claim.entities)
+        ? claim.entities.filter((entity): entity is string => typeof entity === "string" && entity.trim().length > 0)
+        : [];
+      const metricValue = typeof claim.metric_value === "string" && claim.metric_value.trim()
+        ? claim.metric_value.trim()
+        : undefined;
+      const metricUnit = typeof claim.metric_unit === "string" && claim.metric_unit.trim()
+        ? claim.metric_unit.trim()
+        : undefined;
+      const metricContext = typeof claim.metric_context === "string" && claim.metric_context.trim()
+        ? claim.metric_context.trim()
+        : undefined;
+      const originalSentence = typeof claim.original_sentence === "string" && claim.original_sentence.trim()
+        ? claim.original_sentence.trim()
+        : undefined;
+
+      return [{
+        id: `${postUrl}-${index}`,
+        post_id: postUrl,
+        category,
+        claim_text: claimText,
+        original_sentence: originalSentence,
+        entities,
+        metric_value: metricValue ? `${metricValue}${metricUnit ?? ''}` : undefined,
+        metric_context: metricContext,
+        confidence,
+        sentiment: "neutral",
+        date: postDate,
+        source_url: postUrl,
+        source_feed: "",
+        source_feed_name: "",
+        model_relevance: Boolean(claim.model_relevance),
+      }];
+    });
 
   } catch (error) {
     console.error("Gemini Extraction Failed:", error);

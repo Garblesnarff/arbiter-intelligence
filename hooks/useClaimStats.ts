@@ -1,8 +1,5 @@
-
-import { useState, useEffect, useMemo } from 'react';
-import { Claim } from '../types';
-import { fetchClaimsFromRSS, fetchFeedStatus, FeedStatus } from '../services/rssService';
-import { FEEDS } from '../constants/feeds';
+import { useMemo } from 'react';
+import { useClaimsData } from '../contexts/ClaimsContext';
 
 export interface EntityTrend {
   name: string;
@@ -36,24 +33,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const useClaimStats = () => {
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [feedStatuses, setFeedStatuses] = useState<FeedStatus[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await fetchClaimsFromRSS();
-        setClaims(data);
-        setFeedStatuses(fetchFeedStatus());
-      } catch (err) {
-        console.error("Failed to load claim stats", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+  const { claims, loading, feedStatuses } = useClaimsData();
 
   const topClaim = useMemo(() => {
     if (claims.length === 0) return null;

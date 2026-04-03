@@ -1,20 +1,11 @@
-
-import React, { useEffect, useState } from 'react';
-import { fetchFeedStatus, FeedStatus } from '../services/rssService';
+import React from 'react';
 import { CheckCircle2, AlertCircle, Clock, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useClaimsData } from '../contexts/ClaimsContext';
 
 export const FeedStatusPanel = () => {
-  const [statuses, setStatuses] = useState<FeedStatus[]>([]);
+  const { feedStatuses: statuses } = useClaimsData();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setStatuses(fetchFeedStatus());
-    const interval = setInterval(() => {
-      setStatuses(fetchFeedStatus());
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleFeedClick = (feedName: string) => {
     navigate(`/chronicles?source=${encodeURIComponent(feedName)}`);

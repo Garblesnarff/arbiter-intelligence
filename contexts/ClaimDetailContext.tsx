@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode, PropsWithChildren } from 'react';
+import React, { createContext, useContext, useState, type PropsWithChildren } from 'react';
 import { Claim } from '../types';
 
 interface ClaimDetailContextType {
@@ -14,7 +14,7 @@ interface ClaimDetailContextType {
 const ClaimDetailContext = createContext<ClaimDetailContextType | undefined>(undefined);
 
 // Fix: Use PropsWithChildren to ensure children are correctly typed and recognized by the JSX factory in App.tsx
-export const ClaimDetailProvider = ({ children }: PropsWithChildren<{}>) => {
+export const ClaimDetailProvider = ({ children }: PropsWithChildren) => {
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [claimList, setClaimList] = useState<Claim[]>([]);
 

@@ -1,18 +1,29 @@
-
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChronicleFeed } from './ChronicleFeed';
 import { ModelOptimizer } from './ModelOptimizer';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { AlertCircle, ArrowUpRight, ArrowDownRight, Zap, Cpu, Calendar, Activity } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, ArrowDownRight, Zap, Cpu, Activity } from 'lucide-react';
 import { useClaimStats } from '../hooks/useClaimStats';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
+import { openExternalUrl } from '../utils/browser';
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type ChartTooltipProps = {
+  active?: boolean;
+  label?: string;
+  payload?: Array<{
+    color?: string;
+    name?: string;
+    value?: number | string;
+  }>;
+};
+
+const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-950 border border-slate-800 p-3 rounded-lg shadow-xl text-xs">
         <p className="text-slate-400 mb-1 font-mono uppercase">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <p key={index} style={{ color: entry.color }} className="font-bold">
             {entry.name}: {entry.value}
           </p>
@@ -24,8 +35,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const Dashboard = () => {
-  const { topClaim, trendingEntities, chartData, categoryStats, feedStatuses, loading, totalClaims } = useClaimStats();
+  const { topClaim, trendingEntities, chartData, categoryStats, loading } = useClaimStats();
   const { openClaim } = useClaimDetail();
+  const navigate = useNavigate();
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -74,7 +86,7 @@ export const Dashboard = () => {
                   </button>
                   <button 
                     className="text-slate-400 hover:text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-800 hover:bg-slate-800"
-                    onClick={() => window.open(topClaim.source_url, '_blank')}
+                    onClick={() => openExternalUrl(topClaim.source_url)}
                   >
                       View Original
                   </button>
@@ -144,7 +156,7 @@ export const Dashboard = () => {
                     {trendingEntities.length > 0 ? trendingEntities.map((entity) => (
                         <div 
                           key={entity.name} 
-                          onClick={() => window.location.href=`#/chronicles?entity=${encodeURIComponent(entity.name)}`}
+                          onClick={() => navigate(`/chronicles?entity=${encodeURIComponent(entity.name)}`)}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-full text-xs text-slate-300 hover:border-indigo-500/50 cursor-pointer transition-colors group"
                         >
                             <span className="group-hover:text-indigo-400 transition-colors">{entity.name}</span>

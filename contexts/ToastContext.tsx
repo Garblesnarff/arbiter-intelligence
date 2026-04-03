@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, PropsWithChildren } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, type PropsWithChildren } from 'react';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -17,7 +17,7 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export const ToastProvider = ({ children }: PropsWithChildren<{}>) => {
+export const ToastProvider = ({ children }: PropsWithChildren) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const removeToast = useCallback((id: number) => {
@@ -30,8 +30,10 @@ export const ToastProvider = ({ children }: PropsWithChildren<{}>) => {
     setTimeout(() => removeToast(id), 3000);
   }, [removeToast]);
 
+  const value = useMemo(() => ({ showToast, toasts, removeToast }), [showToast, toasts, removeToast]);
+
   return (
-    <ToastContext.Provider value={{ showToast, toasts, removeToast }}>
+    <ToastContext.Provider value={value}>
       {children}
     </ToastContext.Provider>
   );

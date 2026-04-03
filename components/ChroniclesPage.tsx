@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { fetchClaimsFromRSS } from '../services/rssService';
-import { MOCK_CLAIMS } from '../constants';
 import { FEEDS } from '../constants/feeds';
 import { Claim } from '../types';
 import { 
@@ -32,6 +30,8 @@ import {
 } from 'lucide-react';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { useToast } from '../contexts/ToastContext';
+import { useClaimsData } from '../contexts/ClaimsContext';
+import { copyTextToClipboard, downloadTextFile, openExternalUrl } from '../utils/browser';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -62,8 +62,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const ChroniclesPage = () => {
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set(['ALL']));
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +73,7 @@ export const ChroniclesPage = () => {
   
   const { openClaim } = useClaimDetail();
   const { showToast } = useToast();
+  const { claims, loading, refreshClaims, usingMockData } = useClaimsData();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -117,28 +116,20 @@ export const ChroniclesPage = () => {
     localStorage.setItem('arbiter_view_mode', viewMode);
   }, [viewMode]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-        const rssClaims = await fetchClaimsFromRSS();
-        if (rssClaims.length > 0) {
-            setClaims(rssClaims);
-            showToast('Feed refresh complete');
-        } else {
-            setClaims(MOCK_CLAIMS);
-        }
-    } catch (e) {
-        console.error(e);
-        setClaims(MOCK_CLAIMS);
-        showToast('Refresh failed', 'error');
-    } finally {
-        setLoading(false);
+  const handleRefresh = async () => {
+    const result = await refreshClaims({ forceRefresh: true });
+    if (result.error) {
+      showToast('Refresh failed', 'error');
+      return;
     }
-  };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+    if (result.usingMockData) {
+      showToast('Live feeds unavailable, showing fallback data', 'info');
+      return;
+    }
+
+    showToast('Feed refresh complete');
+  };
 
   const categories = ['ALL', 'MODELS', 'COMPUTE', 'CAPITAL', 'ROBOTICS', 'BIOLOGY', 'ENERGY', 'SPACE', 'GOVERNANCE', 'INFRASTRUCTURE', 'CONSCIOUSNESS'];
 
@@ -173,22 +164,20 @@ export const ChroniclesPage = () => {
     });
   }, [filteredClaims]);
 
-  const handleShare = (e: React.MouseEvent, claim: Claim) => {
+  const handleShare = async (e: React.MouseEvent, claim: Claim) => {
     e.stopPropagation();
     const formattedDate = new Date(claim.date).toLocaleDateString();
     const shareText = `[${claim.category}] ${claim.claim_text} — ${claim.source_feed_name || claim.source_name} (${formattedDate})`;
-    navigator.clipboard.writeText(shareText);
-    showToast('Copied to clipboard');
+    const copied = await copyTextToClipboard(shareText);
+    showToast(copied ? 'Copied to clipboard' : 'Clipboard unavailable', copied ? 'success' : 'error');
   };
 
   const exportAsJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredClaims, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `arbiter_claims_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    downloadTextFile(
+      `arbiter_claims_${new Date().toISOString().split('T')[0]}.json`,
+      JSON.stringify(filteredClaims, null, 2),
+      'application/json;charset=utf-8'
+    );
     setIsExportOpen(false);
     showToast('Export complete');
   };
@@ -205,26 +194,24 @@ export const ChroniclesPage = () => {
       c.source_url || "",
       c.source_feed_name || ""
     ]);
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `arbiter_claims_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    const csvContent = headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+    downloadTextFile(
+      `arbiter_claims_${new Date().toISOString().split('T')[0]}.csv`,
+      csvContent,
+      'text/csv;charset=utf-8'
+    );
     setIsExportOpen(false);
     showToast('Export complete');
   };
 
-  const copyAllToClipboard = () => {
+  const copyAllToClipboard = async () => {
     const text = filteredClaims.map(c => {
       const date = new Date(c.date).toLocaleDateString();
       return `[${c.category}] ${c.claim_text} (${date})`;
     }).join('\n');
-    navigator.clipboard.writeText(text);
+    const copied = await copyTextToClipboard(text);
     setIsExportOpen(false);
-    showToast('Copied filtered list to clipboard');
+    showToast(copied ? 'Copied filtered list to clipboard' : 'Clipboard unavailable', copied ? 'success' : 'error');
   };
 
   return (
@@ -232,7 +219,9 @@ export const ChroniclesPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Chronicle Archive</h1>
-          <p className="text-slate-400 text-sm">Aggregating {claims.length} signals from {FEEDS.length} sources.</p>
+          <p className="text-slate-400 text-sm">
+            Aggregating {claims.length} signals from {FEEDS.length} sources.{usingMockData ? ' Showing fallback data.' : ''}
+          </p>
         </div>
         <div className="flex items-center gap-2">
            {/* Export Dropdown */}
@@ -281,7 +270,7 @@ export const ChroniclesPage = () => {
               </button>
            </div>
            <button 
-             onClick={fetchData}
+             onClick={() => void handleRefresh()}
              disabled={loading}
              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 border border-slate-700 shadow-sm"
            >
@@ -421,7 +410,13 @@ export const ChroniclesPage = () => {
                           </button>
                           {claim.source_url && (
                               <button 
-                                  onClick={(e) => { e.stopPropagation(); window.open(claim.source_url, '_blank'); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const opened = openExternalUrl(claim.source_url);
+                                    if (!opened) {
+                                      showToast('Unable to open source link', 'error');
+                                    }
+                                  }}
                                   className="text-slate-600 hover:text-indigo-400 transition-all p-1.5 bg-slate-950/0 hover:bg-slate-950 rounded-lg"
                                   title="Visit original source"
                               >

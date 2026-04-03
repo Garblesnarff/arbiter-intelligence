@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, Sparkles, ChevronRight, BarChart2, CheckCircle2, AlertCircle, Command } from 'lucide-react';
 import { analyzeTask } from '../services/geminiService';
 import { useDynamicModels } from '../hooks/useDynamicModels';
-import { TaskAnalysis, ModelEntry } from '../types';
+import { TaskAnalysis, ModelEntry, TaskCategory } from '../types';
 
 export const ModelOptimizer = () => {
   const [prompt, setPrompt] = useState('');
@@ -39,7 +39,7 @@ export const ModelOptimizer = () => {
     // 2. Filter and Sort Models based on Intelligence
     const compatibleModels = models.filter(m => 
         m.recommended_for.includes(result.category) || 
-        m.recommended_for.includes("general" as any)
+        m.recommended_for.includes(TaskCategory.GENERAL)
     );
 
     // Simple scoring: prioritize models with specific chronicle intelligence snippets

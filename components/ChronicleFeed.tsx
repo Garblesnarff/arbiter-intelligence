@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
-import { MOCK_CLAIMS } from '../constants';
-import { fetchClaimsFromRSS } from '../services/rssService';
+import React, { useMemo } from 'react';
 import { Claim } from '../types';
 import { Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Activity, Zap, Cpu, Globe, ExternalLink, Rocket, Heart, Shield, Share2 } from 'lucide-react';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { useToast } from '../contexts/ToastContext';
+import { useClaimsData } from '../contexts/ClaimsContext';
+import { copyTextToClipboard, openExternalUrl } from '../utils/browser';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -38,41 +38,26 @@ const SkeletonItem = () => (
 );
 
 export const ChronicleFeed = () => {
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { claims, loading } = useClaimsData();
   const { openClaim } = useClaimDetail();
   const { showToast } = useToast();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const rssClaims = await fetchClaimsFromRSS();
-        if (rssClaims.length > 0) {
-          const sorted = [...rssClaims].sort((a, b) => {
-             if (a.model_relevance && !b.model_relevance) return -1;
-             if (!a.model_relevance && b.model_relevance) return 1;
-             return new Date(b.date).getTime() - new Date(a.date).getTime();
-          });
-          setClaims(sorted.slice(0, 10)); 
-        } else {
-          setClaims(MOCK_CLAIMS); 
-        }
-      } catch (err) {
-        console.error(err);
-        setClaims(MOCK_CLAIMS);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+  const displayedClaims = useMemo(() => {
+    return [...claims]
+      .sort((a, b) => {
+        if (a.model_relevance && !b.model_relevance) return -1;
+        if (!a.model_relevance && b.model_relevance) return 1;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      })
+      .slice(0, 10);
+  }, [claims]);
 
-  const handleShare = (e: React.MouseEvent, claim: Claim) => {
+  const handleShare = async (e: React.MouseEvent, claim: Claim) => {
     e.stopPropagation();
     const formattedDate = new Date(claim.date).toLocaleDateString();
     const shareText = `[${claim.category}] ${claim.claim_text} — ${claim.source_feed_name || claim.source_name} (${formattedDate})`;
-    navigator.clipboard.writeText(shareText);
-    showToast('Copied to clipboard');
+    const copied = await copyTextToClipboard(shareText);
+    showToast(copied ? 'Copied to clipboard' : 'Clipboard unavailable', copied ? 'success' : 'error');
   };
 
   return (
@@ -96,10 +81,10 @@ export const ChronicleFeed = () => {
             <SkeletonItem />
           </>
         ) : (
-          claims.map((claim) => (
+          displayedClaims.map((claim) => (
             <div 
               key={claim.id} 
-              onClick={() => openClaim(claim, claims)}
+              onClick={() => openClaim(claim, displayedClaims)}
               className="p-4 hover:bg-slate-800/30 transition-colors group relative cursor-pointer"
             >
               <div className="flex items-start gap-3">
@@ -133,7 +118,13 @@ export const ChronicleFeed = () => {
                   </button>
                   {claim.source_url && (
                     <button 
-                      onClick={(e) => { e.stopPropagation(); window.open(claim.source_url, '_blank'); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const opened = openExternalUrl(claim.source_url);
+                        if (!opened) {
+                          showToast('Unable to open source link', 'error');
+                        }
+                      }}
                       className="text-slate-600 hover:text-indigo-400 transition-colors p-1"
                       title="View Source"
                     >

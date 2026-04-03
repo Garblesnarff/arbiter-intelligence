@@ -2,10 +2,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TaskAnalysis, TaskCategory } from "../types";
 
+const getApiKey = () =>
+  import.meta.env.VITE_GEMINI_API_KEY
+  || (typeof process !== 'undefined' ? process.env.API_KEY || process.env.GEMINI_API_KEY : undefined);
+
+const createFallbackAnalysis = (reasoning: string): TaskAnalysis => ({
+  category: TaskCategory.GENERAL,
+  reasoning,
+  complexity: "medium",
+});
+
 export const analyzeTask = async (prompt: string): Promise<TaskAnalysis> => {
-  // Always initialize GoogleGenAI using the API key from process.env.API_KEY directly
-  // Create a new instance right before the call to ensure the latest key is used
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return createFallbackAnalysis("Gemini API key is not configured.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const response = await ai.models.generateContent({
@@ -29,27 +42,32 @@ export const analyzeTask = async (prompt: string): Promise<TaskAnalysis> => {
       },
     });
 
-    // Access text directly from response.text property
-    const result = JSON.parse(response.text || "{}");
+    let result: { category?: string; reasoning?: string; complexity?: string } = {};
+    try {
+      result = JSON.parse(response.text || "{}");
+    } catch (error) {
+      console.warn("Gemini analysis returned invalid JSON:", error);
+      return createFallbackAnalysis("Classification analysis returned an unreadable response.");
+    }
     
-    // Validate that the category is a valid TaskCategory, fallback if not
     const category = Object.values(TaskCategory).includes(result.category as TaskCategory) 
         ? (result.category as TaskCategory) 
         : TaskCategory.GENERAL;
+    const complexity = result.complexity === "low" || result.complexity === "medium" || result.complexity === "high"
+      ? result.complexity
+      : "medium";
+    const reasoning = typeof result.reasoning === "string" && result.reasoning.trim()
+      ? result.reasoning
+      : "No reasoning returned by the model.";
 
     return {
         category,
-        reasoning: result.reasoning,
-        complexity: result.complexity
+        reasoning,
+        complexity
     };
 
   } catch (error) {
     console.error("Gemini analysis failed:", error);
-    // Return a default object instead of simulation logic to maintain standard behavior
-    return {
-      category: TaskCategory.GENERAL,
-      reasoning: "Classification analysis failed or was unavailable.",
-      complexity: "medium"
-    };
+    return createFallbackAnalysis("Classification analysis failed or was unavailable.");
   }
 };

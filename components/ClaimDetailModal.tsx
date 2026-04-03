@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, ExternalLink, Cpu, DollarSign, Zap, Activity, Globe, Rocket, Heart, Shield, Hash, Database, Link as LinkIcon, Info, ChevronUp, ChevronDown, Share2 } from 'lucide-react';
-import { Claim } from '../types';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { useToast } from '../contexts/ToastContext';
-import { fetchClaimsFromRSS } from '../services/rssService';
+import { useClaimsData } from '../contexts/ClaimsContext';
+import { copyTextToClipboard } from '../utils/browser';
 
 const CategoryIcon = ({ category }: { category: string }) => {
   switch (category) {
@@ -38,12 +38,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 export const ClaimDetailModal = () => {
   const { selectedClaim, claimList, closeClaim, nextClaim, prevClaim, openClaim } = useClaimDetail();
   const { showToast } = useToast();
-  const [allClaims, setAllClaims] = useState<Claim[]>([]);
+  const { claims: allClaims } = useClaimsData();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (selectedClaim) {
-      fetchClaimsFromRSS().then(setAllClaims);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -86,10 +85,10 @@ export const ClaimDetailModal = () => {
     navigate(`/chronicles?entity=${encodeURIComponent(entity)}`);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const shareText = `[${selectedClaim.category}] ${selectedClaim.claim_text}\n\nSource: ${selectedClaim.source_url}`;
-    navigator.clipboard.writeText(shareText);
-    showToast('Claim details copied to clipboard');
+    const copied = await copyTextToClipboard(shareText);
+    showToast(copied ? 'Claim details copied to clipboard' : 'Clipboard unavailable', copied ? 'success' : 'error');
   };
 
   const formattedDate = new Date(selectedClaim.date).toLocaleDateString('en-US', {
