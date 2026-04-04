@@ -3,6 +3,7 @@ import { Search, Sparkles, ChevronRight, BarChart2, CheckCircle2, AlertCircle, C
 import { analyzeTask } from '../services/geminiService';
 import { useDynamicModels } from '../hooks/useDynamicModels';
 import { TaskAnalysis, ModelEntry, TaskCategory } from '../types';
+import ModelPulseboard from './semiotic/ModelPulseboard';
 
 export const ModelOptimizer = () => {
   const [prompt, setPrompt] = useState('');
@@ -105,6 +106,11 @@ export const ModelOptimizer = () => {
           </div>
         </div>
       </div>
+
+      {/* Model Pulseboard — visual exploration when no task entered */}
+      {!analysis && !isAnalyzing && models.length > 0 && (
+        <ModelPulseboard models={models} />
+      )}
 
       {/* Results Section */}
       {analysis && (

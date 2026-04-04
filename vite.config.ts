@@ -20,6 +20,14 @@ export default defineConfig({
             return 'charts';
           }
 
+          if (id.includes('semiotic')) {
+            return 'semiotic';
+          }
+
+          if (id.includes('pretext')) {
+            return 'pretext';
+          }
+
           if (id.includes('lucide-react')) {
             return 'icons';
           }

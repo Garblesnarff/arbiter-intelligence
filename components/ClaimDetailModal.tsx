@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, ExternalLink, Globe, Hash, Info, ChevronUp, ChevronDown, Share2, Zap, Link as LinkIcon } from 'lucide-react';
 import { CategoryIcon, CATEGORY_BADGE_COLORS } from './shared/CategoryIcon';
+import { ShareCardButton } from './ShareCardButton';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { useToast } from '../contexts/ToastContext';
 import { useClaimsData } from '../contexts/ClaimsContext';
@@ -237,6 +238,7 @@ export const ClaimDetailModal = () => {
             <Share2 className="w-4 h-4" />
             Share Signal
           </button>
+          <ShareCardButton claim={selectedClaim} className="py-2.5" />
         </div>
 
       </div>
