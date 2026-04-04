@@ -63,13 +63,13 @@ export const SettingsPage = () => {
           <div className="flex items-center gap-2 px-2">
             <Database className="w-5 h-5 text-indigo-400" />
             <h2 className="text-lg font-bold text-white">Live Signal Sources</h2>
-            <span className="ml-auto text-xs text-slate-500 font-mono">{FEEDS.length} Monitored Feeds</span>
+            <span className="ml-auto text-xs text-slate-500 font-mono">{FEEDS.length + 3} Sources (RSS + HN + arXiv + GitHub)</span>
           </div>
 
           <FeedStatusPanel />
           
           <p className="text-xs text-slate-500 italic text-center mt-4">
-            Arbiter extracts insights from high-quality acceleration chronicles in real-time.
+            Arbiter aggregates signals from RSS feeds, Hacker News, arXiv, and GitHub in real-time.
           </p>
       </div>
 
