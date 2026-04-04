@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChronicleFeed } from './ChronicleFeed';
 import { HeroSignalBrief } from './HeroSignalBrief';
+import { ClusterStrip } from './ClusterStrip';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { AlertCircle, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
 import { useClaimStats, CategoryStat } from '../hooks/useClaimStats';
@@ -55,6 +56,9 @@ export const Dashboard = () => {
           <div className="text-2xl font-bold text-white font-mono">{trendingEntities.length}</div>
         </div>
       </div>
+
+      {/* Emerging Narratives — topic clusters */}
+      <ClusterStrip />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main feed column */}

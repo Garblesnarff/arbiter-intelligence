@@ -2,6 +2,7 @@
 import { Claim } from '../types';
 import { FeedStatus } from './rssService';
 import { inferCategory, extractEntities, cachedFetch } from './sourceUtils';
+import { extractWithOpenRouter } from './openrouterExtraction';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -102,7 +103,29 @@ export async function fetchHackerNewsClaims(): Promise<Claim[]> {
       const ids = await fetchTopStoryIds();
       const items = await Promise.all(ids.map(fetchItem));
       const relevant = (items.filter(Boolean) as HNItem[]).filter(isRelevantStory);
-      return relevant.map(itemToClaim);
+      const baseClaims = relevant.map(itemToClaim);
+
+      // Enrich with OpenRouter entity extraction (up to 10 items to conserve quota)
+      const enriched = await Promise.all(
+        baseClaims.slice(0, 10).map(async (claim) => {
+          try {
+            const result = await extractWithOpenRouter(claim.claim_text, '', 'hackernews');
+            if (result && result.entities.length > 0) {
+              return {
+                ...claim,
+                entities: result.entities,
+                category: result.category,
+                confidence: result.confidence,
+                claim_text: result.claim_text || claim.claim_text,
+              };
+            }
+          } catch { /* fall through */ }
+          return claim;
+        })
+      );
+
+      // Return enriched items + any remaining unenriched ones
+      return [...enriched, ...baseClaims.slice(10)];
     });
 
     writeStatus({

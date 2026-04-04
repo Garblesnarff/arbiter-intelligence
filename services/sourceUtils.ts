@@ -48,33 +48,82 @@ export function inferCategory(text: string): Claim['category'] {
 // Entity extraction (simple proper-noun heuristic)
 // ---------------------------------------------------------------------------
 
+// Well-known entities to look for in any text (case-insensitive matching, canonical casing output)
+const KNOWN_ENTITIES: Array<[RegExp, string]> = [
+  [/\bOpenAI\b/i, 'OpenAI'],
+  [/\bAnthro?pic\b/i, 'Anthropic'],
+  [/\bGoogle\b/i, 'Google'],
+  [/\bMeta\s*AI\b/i, 'Meta AI'],
+  [/\bMeta\b/i, 'Meta'],
+  [/\bNVIDIA\b/i, 'NVIDIA'],
+  [/\bAMD\b/i, 'AMD'],
+  [/\bIntel\b/i, 'Intel'],
+  [/\bMicrosoft\b/i, 'Microsoft'],
+  [/\bApple\b/i, 'Apple'],
+  [/\bAmazon\b/i, 'Amazon'],
+  [/\bTesla\b/i, 'Tesla'],
+  [/\bSpaceX\b/i, 'SpaceX'],
+  [/\bGPT[\s-]?[0-9.]+\b/i, 'GPT'],
+  [/\bClaude\b/i, 'Claude'],
+  [/\bGemini\b/i, 'Gemini'],
+  [/\bLlama\b/i, 'Llama'],
+  [/\bMistral\b/i, 'Mistral'],
+  [/\bStable\s*Diffusion\b/i, 'Stable Diffusion'],
+  [/\bHugging\s*Face\b/i, 'Hugging Face'],
+  [/\bPyTorch\b/i, 'PyTorch'],
+  [/\bTensorFlow\b/i, 'TensorFlow'],
+  [/\bTransformer\b/i, 'Transformer'],
+  [/\bLLM\b/i, 'LLM'],
+  [/\bRAG\b/, 'RAG'],
+  [/\bRL(?:HF)?\b/, 'RLHF'],
+  [/\bCRISPR\b/i, 'CRISPR'],
+  [/\bAlphaFold\b/i, 'AlphaFold'],
+  [/\bNASA\b/i, 'NASA'],
+  [/\bArtemis\b/i, 'Artemis'],
+  [/\bBlackwell\b/i, 'Blackwell'],
+  [/\bH100\b/i, 'H100'],
+  [/\bH200\b/i, 'H200'],
+  [/\bTPU\b/i, 'TPU'],
+  [/\bGPU\b/i, 'GPU'],
+  [/\bAGI\b/i, 'AGI'],
+  [/\bARC-AGI\b/i, 'ARC-AGI'],
+  [/\barXiv\b/i, 'arXiv'],
+];
+
 /**
- * Extract likely proper nouns / entity names from text.
- * Uses a simple heuristic: sequences of capitalised words that are not
- * common English stop-words at the start of a sentence.
+ * Extract entities from text using known-entity matching + proper-noun heuristic.
  */
 export function extractEntities(text: string): string[] {
   if (!text) return [];
 
-  const stopWords = new Set([
-    'The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'Its',
-    'Is', 'Are', 'Was', 'Were', 'Be', 'Been', 'Being', 'Have', 'Has',
-    'Had', 'Do', 'Does', 'Did', 'Will', 'Would', 'Could', 'Should',
-    'May', 'Might', 'Shall', 'Can', 'For', 'And', 'But', 'Or', 'Nor',
-    'Not', 'No', 'So', 'Yet', 'At', 'By', 'In', 'Of', 'On', 'To',
-    'Up', 'With', 'From', 'Into', 'How', 'What', 'When', 'Where',
-    'Who', 'Why', 'New', 'Now', 'More', 'Most', 'All', 'About',
-    'After', 'Before', 'Over', 'Under', 'Between', 'Through',
-  ]);
-
-  // Match capitalised words (2+ chars), possibly chained
-  const matches = text.match(/\b[A-Z][a-zA-Z0-9]*(?:\s+[A-Z][a-zA-Z0-9]*)*\b/g) || [];
-
   const entities: string[] = [];
   const seen = new Set<string>();
 
+  // 1. Match known entities (case-insensitive, canonical casing)
+  for (const [pattern, canonical] of KNOWN_ENTITIES) {
+    if (pattern.test(text) && !seen.has(canonical.toLowerCase())) {
+      seen.add(canonical.toLowerCase());
+      entities.push(canonical);
+    }
+  }
+
+  // 2. Proper-noun heuristic for remaining capitalized words
+  const stopWords = new Set([
+    'the', 'a', 'an', 'this', 'that', 'these', 'those', 'it', 'its',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
+    'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+    'may', 'might', 'shall', 'can', 'for', 'and', 'but', 'or', 'nor',
+    'not', 'no', 'so', 'yet', 'at', 'by', 'in', 'of', 'on', 'to',
+    'up', 'with', 'from', 'into', 'how', 'what', 'when', 'where',
+    'who', 'why', 'new', 'now', 'more', 'most', 'all', 'about',
+    'after', 'before', 'over', 'under', 'between', 'through',
+    'we', 'our', 'your', 'my', 'their', 'show', 'ask', 'get',
+  ]);
+
+  const matches = text.match(/\b[A-Z][a-zA-Z0-9]*(?:\s+[A-Z][a-zA-Z0-9]*)*\b/g) || [];
+
   for (const match of matches) {
-    const words = match.split(/\s+/).filter((w) => !stopWords.has(w) && w.length >= 2);
+    const words = match.split(/\s+/).filter((w) => !stopWords.has(w.toLowerCase()) && w.length >= 2);
     const entity = words.join(' ').trim();
     if (entity && !seen.has(entity.toLowerCase())) {
       seen.add(entity.toLowerCase());
@@ -82,7 +131,7 @@ export function extractEntities(text: string): string[] {
     }
   }
 
-  return entities.slice(0, 8);
+  return entities.slice(0, 10);
 }
 
 // ---------------------------------------------------------------------------
