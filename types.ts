@@ -1,26 +1,12 @@
 
-export enum TaskCategory {
-  CODE_GENERATION = "code_generation",
-  CODE_REVIEW = "code_review",
-  CODE_DEBUGGING = "code_debugging",
-  CREATIVE_WRITING = "creative_writing",
-  TECHNICAL_WRITING = "technical_writing",
-  DATA_EXTRACTION = "data_extraction",
-  SUMMARIZATION = "summarization",
-  QA_REASONING = "qa_reasoning",
-  QA_FACTUAL = "qa_factual",
-  MATH_PROOF = "math_proof",
-  VISION_ANALYSIS = "vision_analysis",
-  AGENTIC_MULTISTEP = "agentic_multistep",
-  GENERAL = "general"
-}
-
 export interface ChroniclePost {
   id: string;
   title: string;
   published_at: string;
   body_snippet: string;
 }
+
+export type SourceKind = 'rss' | 'hackernews' | 'arxiv' | 'github';
 
 export interface Claim {
   id: string;
@@ -38,29 +24,32 @@ export interface Claim {
   source_url?: string;
   source_name?: string;
   source_author?: string;
-  model_relevance?: boolean; // Critical for Model Matrix updates
-  source_feed: string; // Feed ID
-  source_feed_name: string; // Display name
+  model_relevance?: boolean;
+  source_kind?: SourceKind;
+  source_feed: string;
+  source_feed_name: string;
+  cluster_id?: string;
 }
 
-export interface ModelEntry {
+export interface TopicCluster {
+  id: string;
+  label: string;
+  summary?: string;
+  claim_ids: string[];
+  top_entities: string[];
+  source_count: number;
+  last_updated: string;
+}
+
+export interface Watchlist {
   id: string;
   name: string;
-  provider: string;
-  input_cost_per_1m: number;
-  output_cost_per_1m: number;
-  latency_tier: "fast" | "medium" | "slow";
-  strengths: string[];
-  benchmarks: Record<string, string | number>; // e.g., { "ARC-AGI": "85%" }
-  recommended_for: TaskCategory[];
-  chronicle_snippet?: string; // The "intelligence" overlay
-  last_updated?: string; // Date of the last chronicle signal update
-}
-
-export interface TaskAnalysis {
-  category: TaskCategory;
-  reasoning: string;
-  complexity: "low" | "medium" | "high";
+  query: string;
+  entities: string[];
+  categories: Claim['category'][];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FeedSource {

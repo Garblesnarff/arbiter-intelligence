@@ -1,23 +1,22 @@
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Settings, Sliders, Bell, User, Menu, X, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Settings, Eye, User, Menu, X, type LucideIcon } from 'lucide-react';
 import { ClaimDetailModal } from './components/ClaimDetailModal';
 import { ToastContainer } from './components/Toast';
 import { useClaimsData } from './contexts/ClaimsContext';
 
 const Dashboard = lazy(async () => ({ default: (await import('./components/Dashboard')).Dashboard }));
 const ChroniclesPage = lazy(async () => ({ default: (await import('./components/ChroniclesPage')).ChroniclesPage }));
-const ModelMatrixPage = lazy(async () => ({ default: (await import('./components/ModelMatrixPage')).ModelMatrixPage }));
-const AlertsPage = lazy(async () => ({ default: (await import('./components/AlertsPage')).AlertsPage }));
+const WatchlistsPage = lazy(async () => ({ default: (await import('./components/WatchlistsPage')).WatchlistsPage }));
 const SettingsPage = lazy(async () => ({ default: (await import('./components/SettingsPage')).SettingsPage }));
 
 const SidebarItem = ({ icon: Icon, label, to, onClick }: { icon: LucideIcon; label: string; to: string; onClick?: () => void }) => (
-  <NavLink 
+  <NavLink
     to={to}
     onClick={onClick}
     className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
-      isActive 
-        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
+      isActive
+        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
     }`}
   >
@@ -50,7 +49,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-950 flex text-slate-200">
           {isMobileMenuOpen && (
-            <div 
+            <div
               className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
               onClick={() => setIsMobileMenuOpen(false)}
             />
@@ -70,7 +69,7 @@ const App = () => {
                         <span className="text-[10px] text-slate-500 tracking-wider">INTELLIGENCE</span>
                     </div>
                 </div>
-                <button 
+                <button
                   className="md:hidden text-slate-400 hover:text-white"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -82,10 +81,9 @@ const App = () => {
                 <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider px-3 mb-2 mt-2">Platform</div>
                 <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/" />
                 <SidebarItem icon={BookOpen} label="Chronicles" to="/chronicles" />
-                <SidebarItem icon={Sliders} label="Model Matrix" to="/models" />
-                
+                <SidebarItem icon={Eye} label="Watchlists" to="/watchlists" />
+
                 <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider px-3 mb-2 mt-6">Config</div>
-                <SidebarItem icon={Bell} label="Alerts" to="/alerts" />
                 <SidebarItem icon={Settings} label="Settings" to="/settings" />
             </nav>
 
@@ -105,7 +103,7 @@ const App = () => {
           <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
             <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-slate-950/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
                 <div className="flex items-center gap-3 md:hidden">
-                  <button 
+                  <button
                     onClick={() => setIsMobileMenuOpen(true)}
                     className="text-slate-400 hover:text-white p-1"
                   >
@@ -113,7 +111,7 @@ const App = () => {
                   </button>
                   <div className="font-bold text-white">Arbiter</div>
                 </div>
-                
+
                 <div className="ml-auto flex items-center gap-4">
                      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20" title={lastUpdate ? `Last updated: ${lastUpdate}` : 'Feed active'}>
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -122,11 +120,6 @@ const App = () => {
                         </span>
                      </div>
                      <div className="md:hidden w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                     
-                     <div className="relative">
-                       <Bell className="w-5 h-5 text-slate-400 cursor-pointer hover:text-white transition-colors" />
-                       <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full border border-slate-950"></span>
-                     </div>
                 </div>
             </header>
 
@@ -135,15 +128,13 @@ const App = () => {
                   <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/chronicles" element={<ChroniclesPage />} />
-                      <Route path="/models" element={<ModelMatrixPage />} />
-                      <Route path="/alerts" element={<AlertsPage />} />
+                      <Route path="/watchlists" element={<WatchlistsPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
                   </Routes>
                 </Suspense>
             </div>
           </main>
 
-          {/* Global Slide-over Modal */}
           <ClaimDetailModal />
           <ToastContainer />
         </div>
