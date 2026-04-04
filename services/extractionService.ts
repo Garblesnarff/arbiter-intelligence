@@ -1,53 +1,46 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
 import { Claim } from "../types";
 
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'qwen/qwen3.6-plus:free';
+
 const CLAIM_CATEGORIES = new Set<Claim["category"]>([
-  "MODELS",
-  "CAPITAL",
-  "BIOLOGY",
-  "ROBOTICS",
-  "ENERGY",
-  "SPACE",
-  "COMPUTE",
-  "GOVERNANCE",
-  "INFRASTRUCTURE",
-  "CONSCIOUSNESS",
+  "MODELS", "CAPITAL", "BIOLOGY", "ROBOTICS", "ENERGY",
+  "SPACE", "COMPUTE", "GOVERNANCE", "INFRASTRUCTURE", "CONSCIOUSNESS",
 ]);
 
-const getApiKey = () =>
-  import.meta.env.VITE_GEMINI_API_KEY
-  || (typeof process !== 'undefined' ? process.env.API_KEY || process.env.GEMINI_API_KEY : undefined);
+const getApiKey = (): string | null =>
+  (import.meta as any).env?.VITE_OPENROUTER_API_KEY || null;
 
-// Helper to strip HTML tags to save tokens
-const stripHtml = (html: string) => {
+const stripHtml = (html: string): string => {
   const tmp = document.createElement("DIV");
   tmp.innerHTML = html;
   return tmp.textContent || "";
 };
 
-const EXTRACTION_PROMPT = `
-You are an expert analyst extracting structured claims from AI acceleration chronicles.
+const EXTRACTION_PROMPT = `You are an expert analyst extracting structured claims from technology and science articles.
 
-INPUT: A chronicle entry.
+Extract individual claims — concrete facts, announcements, data points, or findings.
 
-OUTPUT: A JSON array of claims with the following structure:
+Return ONLY valid JSON (no markdown, no explanation) in this format:
 {
   "claims": [
     {
       "claim_text": "Concise statement of the claim (1-2 sentences)",
       "original_sentence": "The exact sentence(s) from the source",
       "category": "MODELS|COMPUTE|BIOLOGY|ROBOTICS|SPACE|ENERGY|CAPITAL|GOVERNANCE|INFRASTRUCTURE|CONSCIOUSNESS",
-      "entities": ["Entity1", "Entity2"],
-      "metric_value": "75.0 or null (as string)",
+      "entities": ["Company", "Product", "Person", "Technology"],
+      "metric_value": "75.0 or null",
       "metric_unit": "%|$B|tokens|null",
-      "metric_context": "What the metric measures (e.g. 'ARC-AGI', 'Pricing', 'Context Window')",
+      "metric_context": "What the metric measures",
       "confidence": "high|medium|low",
-      "model_relevance": true/false
+      "model_relevance": true or false
     }
   ]
 }
-`;
+
+Extract ALL named entities thoroughly — company names, product names, people, technologies, benchmarks.
+Be thorough with entities — they are critical for linking related claims across sources.`;
 
 export const extractClaimsFromPost = async (
   rawHtml: string,
@@ -56,63 +49,64 @@ export const extractClaimsFromPost = async (
 ): Promise<Claim[]> => {
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.warn("Gemini extraction skipped because no API key is configured.");
+    console.warn("Extraction skipped: no VITE_OPENROUTER_API_KEY configured.");
     return [];
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-
   try {
     const cleanText = stripHtml(rawHtml);
-    const truncatedText = cleanText.substring(0, 15000); 
+    const truncatedText = cleanText.substring(0, 8000); // shorter than Gemini's 15k — free tier is more limited
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Extract claims from this chronicle text:\n\n${truncatedText}`,
-      config: {
-        systemInstruction: EXTRACTION_PROMPT,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            claims: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  claim_text: { type: Type.STRING },
-                  original_sentence: { type: Type.STRING },
-                  category: { type: Type.STRING },
-                  entities: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  metric_value: { type: Type.STRING, nullable: true },
-                  metric_unit: { type: Type.STRING, nullable: true },
-                  metric_context: { type: Type.STRING, nullable: true },
-                  confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
-                  model_relevance: { type: Type.BOOLEAN },
-                },
-                required: ["claim_text", "category", "entities", "confidence", "model_relevance"],
-              },
-            },
-          },
-        },
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://arbiter-intelligence.app',
+        'X-Title': 'Arbiter Intelligence',
       },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: EXTRACTION_PROMPT },
+          { role: 'user', content: `Extract claims from this article text:\n\n${truncatedText}` },
+        ],
+        max_tokens: 2000,
+        temperature: 0.1,
+      }),
     });
 
-    let result: { claims?: Array<Record<string, unknown>> } = { claims: [] };
-    try {
-      result = JSON.parse(response.text || '{ "claims": [] }');
-    } catch (error) {
-      console.warn("Gemini extraction returned invalid JSON:", error);
+    if (!response.ok) {
+      console.warn(`Extraction API failed: HTTP ${response.status}`);
       return [];
     }
-    
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) return [];
+
+    // Parse JSON — handle thinking tags, code fences, preamble
+    let jsonStr = content;
+    jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    jsonStr = jsonStr.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) return [];
+    jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
+
+    let result: { claims?: Array<Record<string, unknown>> };
+    try {
+      result = JSON.parse(jsonStr);
+    } catch (error) {
+      console.warn("Extraction returned invalid JSON:", error);
+      return [];
+    }
+
     const claims = Array.isArray(result.claims) ? result.claims : [];
 
     return claims.flatMap((claim, index) => {
       const claimText = typeof claim.claim_text === "string" ? claim.claim_text.trim() : "";
-      if (!claimText) {
-        return [];
-      }
+      if (!claimText) return [];
 
       const category = CLAIM_CATEGORIES.has(claim.category as Claim["category"])
         ? (claim.category as Claim["category"])
@@ -143,10 +137,10 @@ export const extractClaimsFromPost = async (
         claim_text: claimText,
         original_sentence: originalSentence,
         entities,
-        metric_value: metricValue ? `${metricValue}${metricUnit ?? ''}` : undefined,
+        metric_value: metricValue ? `${metricValue}${metricUnit ? ' ' + metricUnit : ''}` : undefined,
         metric_context: metricContext,
         confidence,
-        sentiment: "neutral",
+        sentiment: "neutral" as const,
         date: postDate,
         source_url: postUrl,
         source_feed: "",
@@ -156,7 +150,7 @@ export const extractClaimsFromPost = async (
     });
 
   } catch (error) {
-    console.error("Gemini Extraction Failed:", error);
+    console.error("Extraction failed:", error);
     return [];
   }
 };

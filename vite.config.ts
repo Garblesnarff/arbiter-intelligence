@@ -36,9 +36,6 @@ export default defineConfig({
             return 'router';
           }
 
-          if (id.includes('@google/genai')) {
-            return 'gemini';
-          }
 
           if (
             id.includes('/react/')
