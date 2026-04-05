@@ -144,75 +144,77 @@ export const fetchClaimsFromRSS = async ({ forceRefresh = false }: FetchClaimsOp
             return [];
           }
 
-          // Take the latest item from each feed to keep requests bounded.
-          const latestItem = items[0];
-          const link = latestItem.querySelector('link')?.textContent || '';
-          const pubDateStr = latestItem.querySelector('pubDate')?.textContent || '';
+          // Process ALL items in the feed (not just the latest)
+          const allClaims: Claim[] = [];
 
-          const dateObj = new Date(pubDateStr);
-          const formattedDate = Number.isNaN(dateObj.getTime())
-            ? fetchedAt
-            : dateObj.toISOString();
+          for (const item of items) {
+            const link = item.querySelector('link')?.textContent || '';
+            if (!link) continue;
 
-          const cacheKey = `${CACHE_KEY_PREFIX}${source.id}_${link}`;
-          const cachedClaimsForItem = readStoredJson<Claim[]>(cacheKey);
+            const pubDateStr = item.querySelector('pubDate')?.textContent || '';
+            const dateObj = new Date(pubDateStr);
+            const formattedDate = Number.isNaN(dateObj.getTime())
+              ? fetchedAt
+              : dateObj.toISOString();
 
-          if (Array.isArray(cachedClaimsForItem)) {
-            const claims = cachedClaimsForItem.map((claim) => ({
-              ...claim,
+            const cacheKey = `${CACHE_KEY_PREFIX}${source.id}_${link}`;
+            const cachedClaimsForItem = readStoredJson<Claim[]>(cacheKey);
+
+            if (Array.isArray(cachedClaimsForItem)) {
+              allClaims.push(...cachedClaimsForItem.map((claim) => ({
+                ...claim,
+                source_name: source.name,
+                source_author: source.author,
+                source_feed: source.id,
+                source_feed_name: source.name,
+              })));
+              continue;
+            }
+
+            const contentEncoded = item.getElementsByTagNameNS('*', 'encoded')[0]?.textContent;
+            const description = item.querySelector('description')?.textContent;
+            const rawHtml = contentEncoded || description || '';
+
+            if (rawHtml) {
+              const extractedClaims = await extractClaimsFromPost(rawHtml, link, formattedDate);
+
+              if (extractedClaims.length > 0) {
+                const finalClaims = extractedClaims.map((claim) => ({
+                  ...claim,
+                  source_name: source.name,
+                  source_author: source.author,
+                  source_feed: source.id,
+                  source_feed_name: source.name,
+                }));
+                localStorage.setItem(cacheKey, JSON.stringify(finalClaims));
+                allClaims.push(...finalClaims);
+                continue;
+              }
+            }
+
+            // Fallback: use title as claim
+            const title = item.querySelector('title')?.textContent || source.name;
+            const fallbackCategory = (source.categories[0] as Claim['category'] | undefined) ?? 'MODELS';
+            allClaims.push({
+              id: `${source.id}_${link}`,
+              post_id: link,
+              category: fallbackCategory,
+              claim_text: title,
+              entities: [source.name],
+              confidence: 'medium',
+              sentiment: 'neutral',
+              date: formattedDate,
+              source_url: link,
               source_name: source.name,
               source_author: source.author,
+              model_relevance: source.categories.includes('MODELS'),
               source_feed: source.id,
               source_feed_name: source.name,
-            }));
-            updateFeedStatus(source.id, { status: 'success', claimCount: claims.length, lastFetch: fetchedAt, error: undefined });
-            return claims;
+            });
           }
 
-          const contentEncoded = latestItem.getElementsByTagNameNS('*', 'encoded')[0]?.textContent;
-          const description = latestItem.querySelector('description')?.textContent;
-          const rawHtml = contentEncoded || description || '';
-
-          if (!rawHtml) {
-            updateFeedStatus(source.id, { status: 'success', claimCount: 0, lastFetch: fetchedAt, error: undefined });
-            return [];
-          }
-
-          const extractedClaims = await extractClaimsFromPost(rawHtml, link, formattedDate);
-
-          if (extractedClaims.length > 0) {
-            const finalClaims = extractedClaims.map((claim) => ({
-              ...claim,
-              source_name: source.name,
-              source_author: source.author,
-              source_feed: source.id,
-              source_feed_name: source.name,
-            }));
-            localStorage.setItem(cacheKey, JSON.stringify(finalClaims));
-            updateFeedStatus(source.id, { status: 'success', claimCount: finalClaims.length, lastFetch: fetchedAt, error: undefined });
-            return finalClaims;
-          }
-
-          const title = latestItem.querySelector('title')?.textContent || source.name;
-          const fallbackCategory = (source.categories[0] as Claim['category'] | undefined) ?? 'MODELS';
-          const fallbackClaim: Claim = {
-            id: `${source.id}_${link}`,
-            post_id: link,
-            category: fallbackCategory,
-            claim_text: title,
-            entities: [source.name],
-            confidence: 'medium',
-            sentiment: 'neutral',
-            date: formattedDate,
-            source_url: link,
-            source_name: source.name,
-            source_author: source.author,
-            model_relevance: source.categories.includes('MODELS'),
-            source_feed: source.id,
-            source_feed_name: source.name,
-          };
-          updateFeedStatus(source.id, { status: 'success', claimCount: 1, lastFetch: fetchedAt, error: undefined });
-          return [fallbackClaim];
+          updateFeedStatus(source.id, { status: 'success', claimCount: allClaims.length, lastFetch: fetchedAt, error: undefined });
+          return allClaims;
         } catch (error) {
           console.warn(`Failed to fetch ${source.name}:`, error);
           updateFeedStatus(source.id, { status: 'error', error: 'Network Error', lastFetch: new Date().toISOString() });
