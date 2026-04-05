@@ -16,6 +16,8 @@ interface SimNode extends GraphNode {
   y: number;
   vx: number;
   vy: number;
+  fx?: number | null;
+  fy?: number | null;
   radius: number;
 }
 
@@ -31,8 +33,6 @@ function nodeRadius(mentionCount: number, max: number): number {
 }
 
 function nodeColor(entityType: string): string {
-  // Use the category colors since entity_type is often "unknown"
-  // Map common entity types to category colors
   return CATEGORY_CHART_COLORS[entityType] || '#6366f1';
 }
 
@@ -48,8 +48,14 @@ export default function KnowledgeGraph({
   const [simEdges, setSimEdges] = useState<SimEdge[]>([]);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height });
-  const [dragNode, setDragNode] = useState<string | null>(null);
   const simulationRef = useRef<ReturnType<typeof forceSimulation> | null>(null);
+  const simNodesRef = useRef<SimNode[]>([]);
+
+  // Zoom/pan state
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 800, h: 600 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [isDraggingNode, setIsDraggingNode] = useState<string | null>(null);
+  const panStart = useRef({ x: 0, y: 0, vx: 0, vy: 0 });
 
   // Track container width
   useEffect(() => {
@@ -60,7 +66,9 @@ export default function KnowledgeGraph({
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setDimensions({ width: entry.contentRect.width, height });
+        const w = entry.contentRect.width;
+        setDimensions({ width: w, height });
+        setViewBox({ x: 0, y: 0, w, h: height });
       }
     });
     observer.observe(parent);
@@ -75,8 +83,7 @@ export default function KnowledgeGraph({
     const w = dimensions.width;
     const h = dimensions.height;
 
-    // Create simulation nodes
-    const sNodes: SimNode[] = nodes.map((n, i) => ({
+    const sNodes: SimNode[] = nodes.map(n => ({
       ...n,
       x: w / 2 + (Math.random() - 0.5) * w * 0.6,
       y: h / 2 + (Math.random() - 0.5) * h * 0.6,
@@ -85,9 +92,9 @@ export default function KnowledgeGraph({
       radius: nodeRadius(n.mentionCount, maxMentions),
     }));
 
+    simNodesRef.current = sNodes;
     const nodeById = new Map(sNodes.map(n => [n.id, n]));
 
-    // Create simulation edges (filter to only edges where both nodes exist)
     const sEdges: SimEdge[] = edges
       .filter(e => nodeById.has(e.source) && nodeById.has(e.target))
       .map(e => ({
@@ -104,80 +111,128 @@ export default function KnowledgeGraph({
         .distance(d => 80 - (d.strength / maxStrength) * 30)
         .strength(d => 0.3 + (d.strength / maxStrength) * 0.5)
       )
-      .force('charge', forceManyBody<SimNode>().strength(-120))
+      .force('charge', forceManyBody<SimNode>().strength(-150))
       .force('center', forceCenter(w / 2, h / 2))
-      .force('collide', forceCollide<SimNode>().radius(d => d.radius + 8))
-      .force('x', forceX(w / 2).strength(0.05))
-      .force('y', forceY(h / 2).strength(0.05))
+      .force('collide', forceCollide<SimNode>().radius(d => d.radius + 10))
+      .force('x', forceX(w / 2).strength(0.03))
+      .force('y', forceY(h / 2).strength(0.03))
       .alpha(0.8)
-      .alphaDecay(0.015);
+      .alphaDecay(0.012);
 
     sim.on('tick', () => {
-      // Clamp nodes within bounds
-      for (const n of sNodes) {
-        n.x = Math.max(n.radius + 20, Math.min(w - n.radius - 20, n.x));
-        n.y = Math.max(n.radius + 20, Math.min(h - n.radius - 20, n.y));
-      }
       setSimNodes([...sNodes]);
       setSimEdges([...sEdges]);
     });
 
     simulationRef.current = sim;
-
     return () => { sim.stop(); };
   }, [nodes, edges, dimensions.width, dimensions.height]);
 
-  // Handle drag
-  const handleMouseDown = useCallback((nodeId: string, e: React.MouseEvent) => {
+  // Convert screen coords to SVG viewBox coords
+  const screenToSvg = useCallback((clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    const scaleX = viewBox.w / rect.width;
+    const scaleY = viewBox.h / rect.height;
+    return {
+      x: viewBox.x + (clientX - rect.left) * scaleX,
+      y: viewBox.y + (clientY - rect.top) * scaleY,
+    };
+  }, [viewBox]);
+
+  // Zoom with scroll wheel
+  const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    setDragNode(nodeId);
+    const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const { x: mx, y: my } = screenToSvg(e.clientX, e.clientY);
+
+    setViewBox(prev => {
+      const newW = prev.w * zoomFactor;
+      const newH = prev.h * zoomFactor;
+      // Zoom towards mouse position
+      const newX = mx - (mx - prev.x) * zoomFactor;
+      const newY = my - (my - prev.y) * zoomFactor;
+      return { x: newX, y: newY, w: newW, h: newH };
+    });
+  }, [screenToSvg]);
+
+  // Node drag start
+  const handleNodeMouseDown = useCallback((nodeId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingNode(nodeId);
     const sim = simulationRef.current;
-    if (sim) {
-      sim.alphaTarget(0.1).restart();
-    }
+    if (sim) sim.alphaTarget(0.15).restart();
   }, []);
 
+  // Pan start (on SVG background)
+  const handleSvgMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only pan if clicking on the SVG background, not on a node
+    if ((e.target as Element).tagName === 'svg' || (e.target as Element).tagName === 'SVG') {
+      setIsPanning(true);
+      panStart.current = { x: e.clientX, y: e.clientY, vx: viewBox.x, vy: viewBox.y };
+    }
+  }, [viewBox]);
+
+  // Global mouse move/up for drag and pan
   useEffect(() => {
-    if (!dragNode) return;
-
     const handleMove = (e: MouseEvent) => {
-      const svg = svgRef.current;
-      if (!svg) return;
-      const rect = svg.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const node = simNodes.find(n => n.id === dragNode);
-      if (node) {
-        node.fx = x;
-        node.fy = y;
+      if (isDraggingNode) {
+        const { x, y } = screenToSvg(e.clientX, e.clientY);
+        const node = simNodesRef.current.find(n => n.id === isDraggingNode);
+        if (node) {
+          node.fx = x;
+          node.fy = y;
+        }
+      } else if (isPanning) {
+        const dx = e.clientX - panStart.current.x;
+        const dy = e.clientY - panStart.current.y;
+        const svg = svgRef.current;
+        if (!svg) return;
+        const rect = svg.getBoundingClientRect();
+        const scaleX = viewBox.w / rect.width;
+        const scaleY = viewBox.h / rect.height;
+        setViewBox(prev => ({
+          ...prev,
+          x: panStart.current.vx - dx * scaleX,
+          y: panStart.current.vy - dy * scaleY,
+        }));
       }
     };
 
     const handleUp = () => {
-      const node = simNodes.find(n => n.id === dragNode);
-      if (node) {
-        node.fx = null as any;
-        node.fy = null as any;
+      if (isDraggingNode) {
+        const node = simNodesRef.current.find(n => n.id === isDraggingNode);
+        if (node) {
+          node.fx = null;
+          node.fy = null;
+        }
+        setIsDraggingNode(null);
+        const sim = simulationRef.current;
+        if (sim) sim.alphaTarget(0);
       }
-      setDragNode(null);
-      const sim = simulationRef.current;
-      if (sim) sim.alphaTarget(0);
+      setIsPanning(false);
     };
 
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-    };
-  }, [dragNode, simNodes]);
+    if (isDraggingNode || isPanning) {
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('mouseup', handleUp);
+      };
+    }
+  }, [isDraggingNode, isPanning, screenToSvg, viewBox.w, viewBox.h]);
 
   if (nodes.length === 0) return null;
 
   const maxStrength = Math.max(...edges.map(e => e.strength), 1);
 
-  // Determine which nodes are connected to hovered/selected
+  // Highlight connected nodes
   const highlightedIds = new Set<string>();
   const activeId = hoveredNode || selectedNodeId;
   if (activeId) {
@@ -194,8 +249,11 @@ export default function KnowledgeGraph({
         ref={svgRef}
         width="100%"
         height={height}
-        className="cursor-grab"
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+        className={isDraggingNode ? 'cursor-grabbing' : isPanning ? 'cursor-grabbing' : 'cursor-grab'}
         style={{ background: '#020617' }}
+        onWheel={handleWheel}
+        onMouseDown={handleSvgMouseDown}
       >
         {/* Edges */}
         <g>
@@ -231,15 +289,13 @@ export default function KnowledgeGraph({
                 className="cursor-pointer"
                 onMouseEnter={() => setHoveredNode(node.id)}
                 onMouseLeave={() => setHoveredNode(null)}
-                onMouseDown={(e) => handleMouseDown(node.id, e)}
-                onClick={() => onNodeClick?.(node.id)}
+                onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
+                onClick={(e) => { e.stopPropagation(); onNodeClick?.(node.id); }}
                 opacity={dimmed ? 0.2 : 1}
               >
-                {/* Glow for active node */}
                 {isActive && (
                   <circle r={node.radius + 6} fill={color} opacity={0.15} />
                 )}
-                {/* Node circle */}
                 <circle
                   r={node.radius}
                   fill={color}
@@ -247,7 +303,6 @@ export default function KnowledgeGraph({
                   strokeWidth={isActive ? 2 : 0.5}
                   opacity={0.85}
                 />
-                {/* Label */}
                 {(node.radius > 7 || isActive || isConnected) && (
                   <text
                     y={node.radius + 14}
@@ -266,6 +321,35 @@ export default function KnowledgeGraph({
           })}
         </g>
       </svg>
+
+      {/* Zoom controls */}
+      <div className="absolute bottom-3 right-3 flex flex-col gap-1">
+        <button
+          onClick={() => setViewBox(prev => {
+            const cx = prev.x + prev.w / 2;
+            const cy = prev.y + prev.h / 2;
+            const nw = prev.w * 0.8;
+            const nh = prev.h * 0.8;
+            return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
+          })}
+          className="w-8 h-8 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center text-lg font-mono"
+        >+</button>
+        <button
+          onClick={() => setViewBox(prev => {
+            const cx = prev.x + prev.w / 2;
+            const cy = prev.y + prev.h / 2;
+            const nw = prev.w * 1.25;
+            const nh = prev.h * 1.25;
+            return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
+          })}
+          className="w-8 h-8 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center text-lg font-mono"
+        >-</button>
+        <button
+          onClick={() => setViewBox({ x: 0, y: 0, w: dimensions.width, h: dimensions.height })}
+          className="w-8 h-8 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center text-xs"
+          title="Reset zoom"
+        >R</button>
+      </div>
     </div>
   );
 }
