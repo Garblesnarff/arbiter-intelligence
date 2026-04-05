@@ -8,10 +8,12 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-vault": "npx tsx scripts/sync-vault.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.4",
+    "@supabase/supabase-js": "^2.101.1",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -24,6 +26,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "tailwindcss": "^4.2.2",
+    "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

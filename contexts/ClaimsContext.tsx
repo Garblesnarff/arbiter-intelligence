@@ -13,6 +13,7 @@ import { fetchClaimsFromRSS, fetchFeedStatus, LAST_FETCH_KEY, type FeedStatus } 
 import { fetchHackerNewsClaims, getHNFeedStatus } from '../services/hackernewsAdapter';
 import { fetchArxivClaims, getArxivFeedStatus } from '../services/arxivAdapter';
 import { fetchGitHubClaims, getGitHubFeedStatus } from '../services/githubAdapter';
+import { persistClaims, loadPersistedClaims } from '../services/claimsPersistence';
 import { Claim } from '../types';
 
 type RefreshClaimsOptions = {
@@ -101,6 +102,11 @@ export const ClaimsProvider = ({ children }: PropsWithChildren) => {
       setUsingMockData(shouldUseMockData);
       setFeedStatuses(getAllFeedStatuses());
       setLastFetchedAt(localStorage.getItem(LAST_FETCH_KEY));
+
+      // Persist to Supabase in background (don't block UI)
+      if (allClaims.length > 0) {
+        persistClaims(allClaims).catch(err => console.warn('Background persist failed:', err));
+      }
 
       return {
         claims: nextClaims,
