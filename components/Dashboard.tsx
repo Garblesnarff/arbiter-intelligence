@@ -9,9 +9,12 @@ import { useClaimStats, CategoryStat } from '../hooks/useClaimStats';
 import { useClaimDetail } from '../contexts/ClaimDetailContext';
 import { openExternalUrl } from '../utils/browser';
 
-// Lazy-load Semiotic to avoid 1.2MB upfront
+// Lazy-load Semiotic components to avoid 1.2MB upfront
 const SignalRiver = lazy(() =>
   import('./semiotic/SignalRiver').then(m => ({ default: m.SignalRiver }))
+);
+const KnowledgeGraphPreview = lazy(() =>
+  import('./semiotic/KnowledgeGraphPreview').then(m => ({ default: m.KnowledgeGraphPreview }))
 );
 
 export const Dashboard = () => {
@@ -149,6 +152,13 @@ export const Dashboard = () => {
               )}
             </div>
           </div>
+
+          {/* Knowledge Graph preview */}
+          <Suspense fallback={
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 h-[240px] animate-pulse" />
+          }>
+            <KnowledgeGraphPreview />
+          </Suspense>
 
           {/* Quick category breakdown */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">

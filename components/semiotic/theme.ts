@@ -26,3 +26,15 @@ export const PROVIDER_COLORS: Record<string, string> = {
   Meta: '#0668e1',
   Mistral: '#f97316',
 };
+
+export const ENTITY_TYPE_COLORS: Record<string, string> = {
+  company: '#6366f1',     // indigo
+  product: '#3b82f6',     // blue
+  person: '#10b981',      // emerald
+  technology: '#f59e0b',  // amber
+  benchmark: '#ec4899',   // pink
+  concept: '#8b5cf6',     // violet
+  unknown: '#64748b',     // slate
+};
+
+export const ENTITY_TYPE_COLORS_ARRAY = Object.values(ENTITY_TYPE_COLORS);

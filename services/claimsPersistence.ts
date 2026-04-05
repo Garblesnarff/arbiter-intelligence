@@ -500,6 +500,32 @@ export async function persistWatchlists(watchlists: Watchlist[]): Promise<void> 
   }
 }
 
+export async function getEntitiesForGraph(entityIds: string[]): Promise<EntityRow[]> {
+  if (!supabase || entityIds.length === 0) return [];
+
+  try {
+    const results: EntityRow[] = [];
+    // Batch in chunks of 200 to stay within Supabase limits
+    for (let i = 0; i < entityIds.length; i += 200) {
+      const chunk = entityIds.slice(i, i + 200);
+      const { data, error } = await supabase
+        .from('entities')
+        .select('id, canonical_name, entity_type, description, first_seen, last_seen, mention_count, created_at')
+        .in('id', chunk);
+
+      if (error) {
+        console.error('[Arbiter] Failed to fetch entities for graph:', error.message);
+        continue;
+      }
+      if (data) results.push(...(data as EntityRow[]));
+    }
+    return results;
+  } catch (err) {
+    console.error('[Arbiter] Unexpected error fetching entities for graph:', err);
+    return [];
+  }
+}
+
 export async function loadWatchlists(): Promise<Watchlist[]> {
   if (!supabase) return [];
 

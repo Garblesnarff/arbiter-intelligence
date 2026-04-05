@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Settings, Eye, User, Menu, X, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Settings, Eye, Share2, User, Menu, X, type LucideIcon } from 'lucide-react';
 import { ClaimDetailModal } from './components/ClaimDetailModal';
 import { ToastContainer } from './components/Toast';
 import { useClaimsData } from './contexts/ClaimsContext';
@@ -9,6 +9,7 @@ const Dashboard = lazy(async () => ({ default: (await import('./components/Dashb
 const ChroniclesPage = lazy(async () => ({ default: (await import('./components/ChroniclesPage')).ChroniclesPage }));
 const WatchlistsPage = lazy(async () => ({ default: (await import('./components/WatchlistsPage')).WatchlistsPage }));
 const SettingsPage = lazy(async () => ({ default: (await import('./components/SettingsPage')).SettingsPage }));
+const KnowledgeGraphPage = lazy(() => import('./components/KnowledgeGraphPage'));
 
 const SidebarItem = ({ icon: Icon, label, to, onClick }: { icon: LucideIcon; label: string; to: string; onClick?: () => void }) => (
   <NavLink
@@ -82,6 +83,7 @@ const App = () => {
                 <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/" />
                 <SidebarItem icon={BookOpen} label="Chronicles" to="/chronicles" />
                 <SidebarItem icon={Eye} label="Watchlists" to="/watchlists" />
+                <SidebarItem icon={Share2} label="Knowledge Graph" to="/graph" />
 
                 <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider px-3 mb-2 mt-6">Config</div>
                 <SidebarItem icon={Settings} label="Settings" to="/settings" />
@@ -129,6 +131,7 @@ const App = () => {
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/chronicles" element={<ChroniclesPage />} />
                       <Route path="/watchlists" element={<WatchlistsPage />} />
+                      <Route path="/graph" element={<KnowledgeGraphPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
                   </Routes>
                 </Suspense>
